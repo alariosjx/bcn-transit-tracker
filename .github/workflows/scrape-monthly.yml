@@ -1,0 +1,51 @@
+name: scrape-monthly-ntd-check
+
+on:
+  schedule:
+    - cron: '0 15 5 * *'
+  workflow_dispatch:
+
+jobs:
+  monthly-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run all agency scrapers
+        run: python run_all.py --scrape
+
+      - name: Build master dataset
+        run: python merge/build_master.py
+
+      - name: Export Excel and public CSVs
+        run: python export/to_excel.py
+
+      - name: Check for variance flags
+        run: |
+          if [ -f "data/processed/_variance_flags.csv" ]; then
+            echo "Variance flags found — review data/processed/_variance_flags.csv"
+            cat data/processed/_variance_flags.csv
+          else
+            echo "No variance flags"
+          fi
+
+      - name: Commit and push
+        run: |
+          git config user.name  "bcn-transit-bot"
+          git config user.email "data@baycitynews.com"
+          git add data/processed/ data/public/ data/raw/_scrape_log.csv
+          git diff --staged --quiet || git commit -m "chore: monthly refresh $(date -u +%Y-%m-%d)"
+          git push
