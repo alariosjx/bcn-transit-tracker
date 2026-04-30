@@ -1,0 +1,17 @@
+agency_id,agency_name,ntd_id,date,metric,value,source,ntd_value,variance_pct,flag,is_provisional,last_updated
+bart,Bay Area Rapid Transit,90003,2025-01-01,monthly_exits,4151076,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2025-02-01,monthly_exits,4030834,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2025-03-01,monthly_exits,4422230,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2025-04-01,monthly_exits,4736452,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2025-05-01,monthly_exits,4670585,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2025-06-01,monthly_exits,4671899,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2025-07-01,monthly_exits,4713708,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2025-08-01,monthly_exits,4920496,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2025-09-01,monthly_exits,5039183,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2025-10-01,monthly_exits,5341008,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2025-11-01,monthly_exits,4403464,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2025-12-01,monthly_exits,4388602,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2026-01-01,monthly_exits,4538163,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2026-02-01,monthly_exits,4488752,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2026-03-01,monthly_exits,5261842,bart.gov,,,,False,2026-04-30T23:51:11Z
+bart,Bay Area Rapid Transit,90003,2026-04-01,monthly_exits,5189019,bart.gov,,,,True,2026-04-30T23:51:11Z
