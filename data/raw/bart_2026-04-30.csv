@@ -1,0 +1,17 @@
+agency_id,agency_name,ntd_id,date,metric,value,mode,unit,source,source_url,scraped_at,is_provisional
+bart,Bay Area Rapid Transit,90003,2025-01-01,monthly_exits,4151076,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2025-02-01,monthly_exits,4030834,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2025-03-01,monthly_exits,4422230,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2025-04-01,monthly_exits,4736452,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2025-05-01,monthly_exits,4670585,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2025-06-01,monthly_exits,4671899,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2025-07-01,monthly_exits,4713708,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2025-08-01,monthly_exits,4920496,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2025-09-01,monthly_exits,5039183,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2025-10-01,monthly_exits,5341008,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2025-11-01,monthly_exits,4403464,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2025-12-01,monthly_exits,4388602,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2026-01-01,monthly_exits,4538163,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2026-02-01,monthly_exits,4488752,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2026-03-01,monthly_exits,5261842,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,False
+bart,Bay Area Rapid Transit,90003,2026-04-01,monthly_exits,5189019,HR,exits,bart.gov,https://www.bart.gov/news/articles/2025/news20250109-1,2026-04-30T23:17:01Z,True
