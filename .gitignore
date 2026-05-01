@@ -1,2 +1,5 @@
 venv/
 .DS_Store
+data/public/~$*
+**/__pycache__/
+**/.DS_Store
