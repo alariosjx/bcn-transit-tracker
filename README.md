@@ -8,9 +8,9 @@ Designed to run on a reporter's laptop **or** automatically via GitHub Actions.
 
 For reporters not running the workflow on their laptops and are looking for the <strong>cleaned</strong> dataset -
 
-## ⬇️ Download Latest Data
+## ⬇️ Download Latest Data 🚇🚌🚉
 
-## [![Download Excel](https://img.shields.io/badge/Download-Excel-green)](https://github.com/alariosjx/bcn-transit-tracker/raw/main/data/public/bcn_transit_master.xlsx)
+## [![🚀 Download Excel 🚀](https://img.shields.io/badge/🚀_Download_Excel-green?style=for-the-badge)](https://github.com/alariosjx/bcn-transit-tracker/raw/main/data/public/bcn_transit_master.xlsx)
 
 ## What this produces
 
