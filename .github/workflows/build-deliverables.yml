@@ -1,8 +1,7 @@
 name: build-deliverables
 
 on:
-  push:
-    paths:
+  workflow_dispatch:
 
 jobs:
   build:
