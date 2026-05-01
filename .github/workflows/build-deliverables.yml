@@ -3,7 +3,7 @@ name: build-deliverables
 on:
   push:
     paths:
-      - 'data/processed/master_monthly.csv'
+      - "data/processed/master_monthly.csv"
   workflow_dispatch:
 
 jobs:
@@ -19,11 +19,20 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: 'pip'
+          python-version: "3.12"
+          cache: "pip"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Scrape BART
+        run: python scrapers/agencies/bart.py
+
+      - name: Scrape NTD
+        run: python scrapers/agencies/ntd.py
+
+      - name: Build master dataset
+        run: python merge/build_master.py
 
       - name: Export Excel and public CSVs
         run: python export/to_excel.py
