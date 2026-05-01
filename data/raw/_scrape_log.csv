@@ -1,4 +1,10 @@
 scraped_at,agency_id,status,rows_written,notes
 2026-04-30T23:08:10Z,bart,success,16,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.
 2026-04-30T23:17:01Z,bart,success,16,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.
-2026-04-30T23:51:10Z,bart,success,16,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.
+2026-05-01T00:30:07Z,ntd,error,0,403 Client Error: Forbidden for url: https://www.transit.dot.gov/ntd/data-product/monthly-module-adjusted-data-release
+2026-05-01T00:33:34Z,ntd,error,0,403 Client Error: Forbidden for url: https://www.transit.dot.gov/sites/fta.dot.gov/files/2026-04/February%202026%20Complete%20Monthly%20Ridership%20%28with%20adjustments%20and%20estimates%29_260402.xlsx
+2026-05-01T00:34:33Z,ntd,error,0,403 Client Error: Forbidden for url: https://www.transit.dot.gov/sites/fta.dot.gov/files/2026-04/February%202026%20Complete%20Monthly%20Ridership%20%28with%20adjustments%20and%20estimates%29_260402.xlsx
+2026-05-01T01:12:49Z,ntd,success,532,
+2026-05-01T05:20:25Z,bart,success,16,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.
+2026-05-01T05:22:30Z,bart,success,16,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.
+2026-05-01T05:25:27Z,bart,success,16,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.

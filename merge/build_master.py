@@ -39,18 +39,29 @@ def load_latest_raw(agency_id: str) -> pd.DataFrame | None:
 # ── Load NTD monthly data ─────────────────────────────────────────────────────
 def load_ntd() -> pd.DataFrame | None:
     """
-    Loads data/processed/monthly_ntd.csv (reshaped from NTD Excel by R ETL).
-    Returns None if file not found.
+    Loads NTD data from the Socrata API scrape (data/raw/ntd_*.csv).
+    Falls back gracefully if no file found.
     """
-    ntd_path = PROCESSED_DIR / "monthly_ntd.csv"
-    if not ntd_path.exists():
-        log.warning(
-            "monthly_ntd.csv not found. Run etl/01_load_ntd_monthly.R first. "
-            "Proceeding with agency-direct data only."
-        )
+    pattern = str(RAW_DIR / "ntd_*.csv")
+    files   = sorted(glob.glob(pattern), reverse=True)
+    if not files:
+        log.warning("No NTD raw file found. Run scrapers/agencies/ntd.py first.")
         return None
-    df = pd.read_csv(ntd_path, parse_dates=["date"])
-    log.info(f"Loaded NTD: {len(df)} rows")
+    latest = files[0]
+    log.info(f"Loading NTD: {latest}")
+    df = pd.read_csv(latest, parse_dates=["date"])
+
+    # Socrata returns all modes — we need to map to our schema
+    # Rename columns to match what get_ntd_for_agency expects
+    if "agency" in df.columns and "agency_name" not in df.columns:
+        df = df.rename(columns={"agency": "agency_name"})
+    if "ntd_id" not in df.columns:
+        log.warning("ntd_id column missing from NTD file")
+        return None
+
+    df["ntd_id"] = df["ntd_id"].astype(str)
+    df["upt"]    = pd.to_numeric(df.get("upt", df.get("value", 0)), errors="coerce").fillna(0)
+    log.info(f"Loaded NTD: {len(df)} rows, modes: {df['mode'].unique().tolist()}")
     return df
 
 

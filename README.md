@@ -10,21 +10,21 @@ Designed to run on a reporter's laptop **or** automatically via GitHub Actions.
 
 ## What this produces
 
-| File | Description |
-|---|---|
+| File                                  | Description                                                                             |
+| ------------------------------------- | --------------------------------------------------------------------------------------- |
 | `data/public/bcn_transit_master.xlsx` | Excel with multiple tabs: master data, monthly pivot, YoY, agency profiles, methodology |
-| `data/public/bart_monthly.csv` | BART monthly exits, clean and ready for Datawrapper/Flourish |
-| `data/public/agency_profiles.csv` | NTD financial + ridership profile per agency |
-| `viz/` | BCN-styled PNG charts |
+| `data/public/bart_monthly.csv`        | BART monthly exits, clean and ready for Datawrapper/Flourish                            |
+| `data/public/agency_profiles.csv`     | NTD financial + ridership profile per agency                                            |
+| `viz/`                                | BCN-styled PNG charts                                                                   |
 
 ---
 
 ## Agencies covered
 
-| Agency | Source | Frequency | NTD ID |
-|---|---|---|---|
-| BART | bart.gov daily exits | Daily | 90003 |
-| *More agencies added one at a time as each is verified* | | | |
+| Agency                                                  | Source               | Frequency | NTD ID |
+| ------------------------------------------------------- | -------------------- | --------- | ------ |
+| BART                                                    | bart.gov daily exits | Daily     | 90003  |
+| _More agencies added one at a time as each is verified_ |                      |           |        |
 
 ---
 
@@ -32,7 +32,7 @@ Designed to run on a reporter's laptop **or** automatically via GitHub Actions.
 
 ```bash
 # Clone the repo
-git clone https://github.com/baycitnews/bcn-transit-tracker.git
+git clone https://github.com/alariosjx/bcn-transit-tracker.git
 cd bcn-transit-tracker
 
 # Create virtual environment
@@ -45,6 +45,7 @@ pip install -r requirements.txt
 ```
 
 For the R/analysis layer:
+
 ```r
 # In RStudio, open analysis/bcn_transit_tracker.Rproj
 renv::restore()
@@ -69,6 +70,7 @@ python export/to_excel.py
 ```
 
 Or run everything in one command:
+
 ```bash
 python run_all.py
 ```
@@ -79,11 +81,11 @@ python run_all.py
 
 Three workflows run automatically:
 
-| Workflow | Schedule | What it does |
-|---|---|---|
-| `scrape-daily.yml` | Weekdays, 6 AM PT | Scrapes BART daily exits, commits raw data |
-| `scrape-monthly.yml` | 5th of each month, 7 AM PT | Scrapes monthly sources + NTD check, rebuilds master |
-| `build-deliverables.yml` | On push to `data/processed/` | Rebuilds Excel and public CSVs |
+| Workflow                 | Schedule                     | What it does                                         |
+| ------------------------ | ---------------------------- | ---------------------------------------------------- |
+| `scrape-daily.yml`       | Weekdays, 6 AM PT            | Scrapes BART daily exits, commits raw data           |
+| `scrape-monthly.yml`     | 5th of each month, 7 AM PT   | Scrapes monthly sources + NTD check, rebuilds master |
+| `build-deliverables.yml` | On push to `data/processed/` | Rebuilds Excel and public CSVs                       |
 
 All workflows also have a **Run workflow** button in the Actions tab for manual runs.
 
@@ -109,10 +111,10 @@ never commit keys to the repo.
 When both an agency-direct source and NTD report the same month, the master
 dataset includes both values and a variance column:
 
-| Flag | Meaning |
-|---|---|
-| *(blank)* | Variance < 5% — within expected range |
-| `REVIEW` | Variance 5–10% — worth a look |
+| Flag          | Meaning                                                              |
+| ------------- | -------------------------------------------------------------------- |
+| _(blank)_     | Variance < 5% — within expected range                                |
+| `REVIEW`      | Variance 5–10% — worth a look                                        |
 | `INVESTIGATE` | Variance > 10% — do not publish without understanding the difference |
 
 Thresholds are in `merge/config.py`.
