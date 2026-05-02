@@ -168,7 +168,7 @@ def build_agency(agency_id: str, config: dict, ntd: pd.DataFrame | None) -> pd.D
             "source"       : primary_source,
             "ntd_value"    : int(ntd_val) if ntd_val is not None else None,
             "variance_pct" : round(variance_pct, 4) if variance_pct is not None else None,
-            "flag"         : flag_variance(variance_pct),
+            "flag"         : "" if config.get("variance_ignore") else flag_variance(variance_pct),
             "is_provisional": is_provisional,
             "last_updated" : now_utc(),
         })

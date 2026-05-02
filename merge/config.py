@@ -40,14 +40,19 @@ AGENCIES = {
         ),
     },
     # ── Future agencies — uncomment and build scraper when ready ──────────────
-    # "muni": {
-    #     "agency_name"    : "San Francisco Municipal Railway",
-    #     "ntd_id"         : "90015",
-    #     "ntd_modes"      : ["MB", "LR"],
-    #     "primary_source" : "agency_direct",
-    #     "scraper"        : "scrapers.agencies.muni",
-    #     "notes"          : "SFMTA APC data; excludes cable car and paratransit",
-    # },
+    "muni": {
+        "agency_name"    : "San Francisco Municipal Railway",
+        "ntd_id"         : "90015",
+        "ntd_modes"      : ["MB", "LR"],
+        "primary_source" : "agency_direct",
+        "scraper"        : "scrapers.agencies.muni",
+        "variance_ignore": True,  # SFMTA total boardings ~35-40% higher than NTD — expected
+        "notes"          : (
+            "SFMTA total boardings run ~35-40% higher than NTD adjusted UPT. "
+            "Different methodology — SFMTA counts all boardings including transfers. "
+            "Variance up to 45% is expected and documented."
+        ),
+    },
     # "ac_transit": {
     #     "agency_name"    : "AC Transit",
     #     "ntd_id"         : "90014",
