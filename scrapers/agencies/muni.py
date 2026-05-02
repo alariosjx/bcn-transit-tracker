@@ -5,9 +5,9 @@
 #
 # What this pulls:
 #   - Monthly total boardings from April 2020 to present (~1 month lag)
-#   - 2019 baseline for recovery % calculation
+#   - SFMTA's own 2019 baseline for accurate recovery % calculation
 #
-# Output schema: see scrapers/_utils.py NORMALIZED_COLUMNS
+# Output schema: NORMALIZED_COLUMNS + baseline_sfmta
 # Output file:   data/raw/muni_YYYY-MM-DD.csv
 #
 # Bay City News | Andres Jimenez Larios
@@ -31,8 +31,6 @@ NTD_ID      = "90015"
 SOURCE_URL  = "https://transtat.sfmta.com/t/public/views/SystemwideRidershipRecovery/MonthlySystemwideRecoveryAccessibleTable.csv"
 
 
-
-
 # ── Fetch ─────────────────────────────────────────────────────────────────────
 def fetch() -> str:
     resp = fetch_url(SOURCE_URL, timeout=30)
@@ -51,41 +49,47 @@ def parse(text: str) -> pd.DataFrame:
       - "Baseline Monthly Total Boardings (accessible copy)"
       - "Monthly Recovery"
 
-    We only want "Monthly Total Boardings".
+    We pull both boardings and baseline so recovery % uses SFMTA's own 2019 figures
+    rather than NTD UPT, which uses a different methodology and would inflate recovery %.
     Month format: "April 2020"
     Values are formatted with commas: "2,555,000"
     """
     df = pd.read_csv(io.StringIO(text))
     log.info(f"Parsed {len(df)} rows, columns: {df.columns.tolist()}")
-
-    # Rename columns for easier access
     df.columns = ["measure", "month_str", "value_str"]
 
-    # Filter to total boardings only
-    boardings = df[df["measure"] == "Monthly Total Boardings (accessible copy)"].copy()
+    def extract(measure_name: str) -> pd.DataFrame:
+        rows = df[df["measure"] == measure_name].copy()
+        rows["date"] = pd.to_datetime(rows["month_str"], format="%B %Y", errors="coerce")
+        rows = rows.dropna(subset=["date"])
+        rows["val"] = pd.to_numeric(
+            rows["value_str"].str.replace(",", "").str.strip(), errors="coerce"
+        )
+        rows = rows.dropna(subset=["val"])
+        rows["val"] = rows["val"].astype(int)
+        return rows[["date", "val"]].reset_index(drop=True)
+
+    boardings = extract("Monthly Total Boardings (accessible copy)")
+    baseline  = extract("Baseline Monthly Total Boardings (accessible copy)")
 
     if boardings.empty:
         raise ValueError("No 'Monthly Total Boardings' rows found — check CSV structure")
 
-    # Parse month strings like "April 2020" → datetime
-    boardings["date"] = pd.to_datetime(boardings["month_str"], format="%B %Y", errors="coerce")
-    boardings = boardings.dropna(subset=["date"])
+    merged = boardings.merge(
+        baseline.rename(columns={"val": "baseline_sfmta"}),
+        on="date", how="left"
+    ).rename(columns={"val": "value"})
 
-    # Parse value strings like "2,555,000" → int
-    boardings["value"] = boardings["value_str"].str.replace(",", "").str.strip()
-    boardings["value"] = pd.to_numeric(boardings["value"], errors="coerce")
-    boardings = boardings.dropna(subset=["value"])
-    boardings["value"] = boardings["value"].astype(int)
-
-    log.info(f"Parsed {len(boardings)} monthly boarding rows")
-    log.info(f"Date range: {boardings['date'].min().strftime('%b %Y')} → {boardings['date'].max().strftime('%b %Y')}")
-    return boardings[["date", "value"]].reset_index(drop=True)
+    log.info(f"Parsed {len(merged)} monthly boarding rows")
+    log.info(f"Date range: {merged['date'].min().strftime('%b %Y')} → {merged['date'].max().strftime('%b %Y')}")
+    return merged
 
 
 # ── Normalize ─────────────────────────────────────────────────────────────────
 def normalize(df: pd.DataFrame) -> pd.DataFrame:
     """
     Converts parsed boardings to normalized schema.
+    Includes baseline_sfmta column for accurate recovery % calculation in to_excel.py.
     All months from SFMTA CSV are complete — no provisional data.
     """
     today = pd.Timestamp(date.today())
@@ -108,11 +112,13 @@ def normalize(df: pd.DataFrame) -> pd.DataFrame:
             "source_url"     : SOURCE_URL,
             "scraped_at"     : now_utc(),
             "is_provisional" : is_provisional,
+            "baseline_sfmta" : int(row["baseline_sfmta"]) if pd.notna(row.get("baseline_sfmta")) else None,
         })
 
     result = pd.DataFrame(out_rows)
     log.info(f"Normalized {len(result)} monthly rows ({result['is_provisional'].sum()} provisional)")
-    return result[NORMALIZED_COLUMNS]
+    # Return with baseline_sfmta as an extra column beyond NORMALIZED_COLUMNS
+    return result
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
@@ -138,4 +144,4 @@ def run() -> pd.DataFrame:
 if __name__ == "__main__":
     df = run()
     print("\n── Latest 6 months ─────────────────────────────")
-    print(df.tail(6).to_string(index=False))
+    print(df[["date", "value", "baseline_sfmta"]].tail(6).to_string(index=False))

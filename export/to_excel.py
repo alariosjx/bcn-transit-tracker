@@ -288,32 +288,29 @@ def tab_readme(wb) -> None:
 
 
 # ── Datawrapper CSVs ──────────────────────────────────────────────────────────
-# ── Datawrapper CSVs ──────────────────────────────────────────────────────────
 def write_datawrapper_csvs(master: pd.DataFrame) -> None:
-    # Base: all non-provisional rows — never mutate this directly
-    base = master[~master["is_provisional"]].copy()
+    df = master[~master["is_provisional"]].copy()
 
-    # 1. Time series — full history, long format
-    ts = base[["date", "agency_name", "value", "source"]].copy()
+    # 1. Time series — monthly ridership (long format)
+    ts = df[["date", "agency_name", "value", "source"]].copy()
     ts["date"] = ts["date"].dt.strftime("%Y-%m-%d")
-    ts = ts.sort_values("date")
     ts.to_csv(DW_DIR / "bart_monthly_timeseries.csv", index=False)
 
-    # 2. YoY bar chart — current year vs prior year only
-    yoy = base.copy()
-    yoy["year"]        = yoy["date"].dt.year
-    yoy["month"]       = yoy["date"].dt.month
-    yoy["month_label"] = yoy["date"].dt.strftime("%b")
+  # 2. YoY bar chart — current year vs prior year only
+    df["year"]        = df["date"].dt.year
+    df["month"]       = df["date"].dt.month
+    df["month_label"] = df["date"].dt.strftime("%b")
 
-    current_year = yoy["year"].max()
+    current_year = df["year"].max()
     prior_year   = current_year - 1
 
-    yoy_wide = yoy[yoy["year"].isin([prior_year, current_year])].pivot_table(
+    yoy_wide = df[df["year"].isin([prior_year, current_year])].pivot_table(
         index=["month", "month_label"],
         columns="year", values="value", aggfunc="sum"
     ).reset_index()
     yoy_wide.columns = [str(c) for c in yoy_wide.columns]
 
+    # Clean up integers
     for yr in [str(prior_year), str(current_year)]:
         if yr in yoy_wide.columns:
             yoy_wide[yr] = pd.to_numeric(yoy_wide[yr], errors="coerce").apply(
@@ -330,14 +327,31 @@ def write_datawrapper_csvs(master: pd.DataFrame) -> None:
     )
 
     # 3. Recovery tracker — % of 2019 baseline
-    rec = base.copy()
+    # BART: uses NTD 2019 same-month as baseline
+    # Muni: uses SFMTA's own baseline (from raw CSV) — methodology matches their reporting
+    rec = df.copy()
     rec["year"]  = rec["date"].dt.year
     rec["month"] = rec["date"].dt.month
 
-    baseline = rec[rec["year"] == 2019][["agency_name", "month", "value"]].rename(
+    # Build NTD-based baseline (works for BART)
+    ntd_baseline = rec[rec["year"] == 2019][["agency_name", "month", "value"]].rename(
         columns={"value": "baseline_2019"}
     )
-    rec = rec[rec["year"] >= 2020].merge(baseline, on=["agency_name", "month"], how="left")
+    rec = rec[rec["year"] >= 2020].merge(ntd_baseline, on=["agency_name", "month"], how="left")
+
+    # Override Muni baseline with SFMTA's own figures from raw CSV
+    import glob
+    muni_files = sorted(glob.glob(str(DW_DIR.parent.parent / "raw" / "muni_*.csv")), reverse=True)
+    if muni_files:
+        muni_raw = pd.read_csv(muni_files[0], parse_dates=["date"])
+        if "baseline_sfmta" in muni_raw.columns:
+            muni_raw["month"] = muni_raw["date"].dt.month
+            muni_baseline = muni_raw.groupby("month")["baseline_sfmta"].first().reset_index()
+            rec = rec.merge(muni_baseline, on="month", how="left")
+            mask = (rec["agency_name"] == "San Francisco Municipal Railway") & rec["baseline_sfmta"].notna()
+            rec.loc[mask, "baseline_2019"] = rec.loc[mask, "baseline_sfmta"]
+            rec = rec.drop(columns=["baseline_sfmta"], errors="ignore")
+
     rec["recovery_pct"] = (rec["value"] / rec["baseline_2019"] * 100).round(1)
     rec["date"]         = rec["date"].dt.strftime("%Y-%m-%d")
     rec[["agency_name", "date", "value", "baseline_2019", "recovery_pct"]].to_csv(
@@ -345,6 +359,7 @@ def write_datawrapper_csvs(master: pd.DataFrame) -> None:
     )
 
     log.info(f"Wrote 3 Datawrapper CSVs → {DW_DIR}")
+
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 def run():
