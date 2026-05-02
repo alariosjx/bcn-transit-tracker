@@ -2,7 +2,7 @@ name: scrape-daily-bart
 
 on:
   schedule:
-    - cron: '0 14 * * 1-5'
+    - cron: "0 14 * * 1-5"
   workflow_dispatch:
 
 jobs:
@@ -18,15 +18,18 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: 'pip'
+          python-version: "3.12"
+          cache: "pip"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
       - name: Scrape BART
         run: python scrapers/agencies/bart.py
-     
+
+      - name: Scrape Muni
+        run: python scrapers/agencies/muni.py
+
       - name: Scrape NTD
         run: python scrapers/agencies/ntd.py
 
