@@ -26,6 +26,9 @@ jobs:
 
       - name: Scrape BART
         run: python scrapers/agencies/bart.py
+     
+      - name: Scrape NTD
+        run: python scrapers/agencies/ntd.py
 
       - name: Build master dataset
         run: python merge/build_master.py
