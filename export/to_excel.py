@@ -296,33 +296,33 @@ def write_datawrapper_csvs(master: pd.DataFrame) -> None:
     ts["date"] = ts["date"].dt.strftime("%Y-%m-%d")
     ts.to_csv(DW_DIR / "bart_monthly_timeseries.csv", index=False)
 
-   # 2. YoY wide — good for grouped bar charts
-    # Only include select years, month_label as row identifier, no decimals
-    KEEP_YEARS = [2019, 2022, 2023, 2024, 2025, 2026]
-
+  # 2. YoY bar chart — current year vs prior year only
     df["year"]        = df["date"].dt.year
     df["month"]       = df["date"].dt.month
     df["month_label"] = df["date"].dt.strftime("%b")
 
-    yoy_wide = df[df["year"].isin(KEEP_YEARS)].pivot_table(
+    current_year = df["year"].max()
+    prior_year   = current_year - 1
+
+    yoy_wide = df[df["year"].isin([prior_year, current_year])].pivot_table(
         index=["month", "month_label"],
         columns="year", values="value", aggfunc="sum"
     ).reset_index()
     yoy_wide.columns = [str(c) for c in yoy_wide.columns]
 
-    # Convert value columns to integers
-    for yr in [str(y) for y in KEEP_YEARS]:
+    # Clean up integers
+    for yr in [str(prior_year), str(current_year)]:
         if yr in yoy_wide.columns:
-            yoy_wide[yr] = yoy_wide[yr].fillna("").apply(
-                lambda x: int(x) if x != "" else ""
+            yoy_wide[yr] = pd.to_numeric(yoy_wide[yr], errors="coerce").apply(
+                lambda x: int(x) if pd.notna(x) else ""
             )
 
-    # Drop month number, keep only month_label and year columns
-    cols = ["month_label"] + [str(y) for y in KEEP_YEARS if str(y) in yoy_wide.columns]
     month_order = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-    yoy_out = yoy_wide[cols].copy()
-    yoy_out["month_label"] = pd.Categorical(yoy_out["month_label"], categories=month_order, ordered=True)
-    yoy_out.sort_values("month_label").to_csv(
+    yoy_wide["month_label"] = pd.Categorical(yoy_wide["month_label"], categories=month_order, ordered=True)
+
+    cols = ["month_label", str(prior_year), str(current_year)]
+    cols = [c for c in cols if c in yoy_wide.columns]
+    yoy_wide.sort_values("month_label")[cols].to_csv(
         DW_DIR / "bart_yoy_comparison.csv", index=False
     )
 
