@@ -88,7 +88,7 @@ def run_tests():
     results.append(check("Has 2026 column", "2026" in yoy.columns))
     may_row = yoy[yoy["month_label"] == "May"]
     results.append(check("May 2026 shows 5,100,000", not may_row.empty and may_row["2026"].iloc[0] == 5_100_000))
-results.append(check("Jun–Dec 2026 are blank", yoy[yoy["month_label"].isin(["Jun","Jul","Aug","Sep","Oct","Nov","Dec"])]["2026"].isna().all()))
+    results.append(check("Jun–Dec 2026 are blank", yoy[yoy["month_label"].isin(["Jun","Jul","Aug","Sep","Oct","Nov","Dec"])]["2026"].isna().all()))
     print("\n── Recovery Tracker CSV ─────────────────────────────────────────────")
     rec = pd.read_csv(DW_DIR / "bart_recovery_tracker.csv", parse_dates=["date"])
     results.append(check("Starts from 2020", rec["date"].min().year == 2020))
