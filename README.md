@@ -14,46 +14,41 @@ For reporters not running the workflow on their laptops and are looking for the 
 
 ---
 
-## 📊 Visualizations
+## 📊 Live Charts
 
-> BCN-styled charts generated from the latest data. Click the button to browse all files, or preview them below.
+> Charts update automatically every weekday at 6 AM PT as new data comes in.
 
-[![View all charts in viz/](https://img.shields.io/badge/📂%20Browse%20Charts-viz%2F%20folder-0075db?style=for-the-badge)](https://github.com/alariosjx/bcn-transit-tracker/tree/main/viz)
+[![View all charts → CHARTS.md](https://img.shields.io/badge/📊%20All%20Charts-CHARTS.md-0075db?style=for-the-badge)](https://github.com/alariosjx/bcn-transit-tracker/blob/main/CHARTS.md)
 
-<!--
-  HOW TO ADD A CHART PREVIEW:
-  Replace the filenames below with your actual .png filenames from the viz/ folder.
-  GitHub serves them via raw.githubusercontent.com — no extra hosting needed.
-  Template:
-  ![Chart description](https://raw.githubusercontent.com/alariosjx/bcn-transit-tracker/main/viz/YOUR_FILE.png)
--->
+| Chart | Live Link |
+|---|---|
+| BART Ridership Recovery (%) | [→ View chart](https://datawrapper.dwcdn.net/ws69L/2/) |
+| BART Ridership — Total Monthly Exits | [→ View chart](https://datawrapper.dwcdn.net/hXCxj/1/) |
+| BART Monthly Ridership (2021–present) | [→ View chart](https://datawrapper.dwcdn.net/SwXz2/1/) |
+| BART Ridership Table Y-O-Y | [→ View chart](https://datawrapper.dwcdn.net/6hwNp/6/) |
+| BART Ridership All-Time | [→ View chart](https://datawrapper.dwcdn.net/EPek2/1/) |
 
-|                                                                                                                                |                                                                                                                        |
-| :----------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------: |
-| ![BART Monthly Ridership](https://raw.githubusercontent.com/alariosjx/bcn-transit-tracker/main/viz/bart_monthly_ridership.png) | ![Year-over-Year Change](https://raw.githubusercontent.com/alariosjx/bcn-transit-tracker/main/viz/bart_yoy_change.png) |
-|                                                      _BART monthly exits_                                                      |                                                _Year-over-year change_                                                 |
-
-> 💡 **Adding a new chart?** Drop the `.png` into `viz/`, commit it, and add a row to the table above using the template in the comment.
+> Charts pull from `data/public/datawrapper/`. To refresh manually, open the Datawrapper link and click **Refresh data**. Full chart inventory and CSV sources are in [`CHARTS.md`](CHARTS.md).
 
 ---
 
 ## What this produces
 
-| File                                  | Description                                                                             |
-| ------------------------------------- | --------------------------------------------------------------------------------------- |
+| File | Description |
+| --- | --- |
 | `data/public/bcn_transit_master.xlsx` | Excel with multiple tabs: master data, monthly pivot, YoY, agency profiles, methodology |
-| `data/public/bart_monthly.csv`        | BART monthly exits, clean and ready for Datawrapper/Flourish                            |
-| `data/public/agency_profiles.csv`     | NTD financial + ridership profile per agency                                            |
-| `viz/`                                | BCN-styled PNG charts                                                                   |
+| `data/public/bart_monthly.csv` | BART monthly exits, clean and ready for Datawrapper/Flourish |
+| `data/public/agency_profiles.csv` | NTD financial + ridership profile per agency |
+| `viz/` | BCN-styled PNG charts |
 
 ---
 
 ## Agencies covered
 
-| Agency                                                  | Source               | Frequency | NTD ID |
-| ------------------------------------------------------- | -------------------- | --------- | ------ |
-| BART                                                    | bart.gov daily exits | Daily     | 90003  |
-| _More agencies added one at a time as each is verified_ |                      |           |        |
+| Agency | Source | Frequency | NTD ID |
+| --- | --- | --- | --- |
+| BART | bart.gov daily exits | Daily | 90003 |
+| *More agencies added one at a time as each is verified* |  |  |  |
 
 ---
 
@@ -110,11 +105,11 @@ python run_all.py
 
 Three workflows run automatically:
 
-| Workflow                 | Schedule                     | What it does                                         |
-| ------------------------ | ---------------------------- | ---------------------------------------------------- |
-| `scrape-daily.yml`       | Weekdays, 6 AM PT            | Scrapes BART daily exits, commits raw data           |
-| `scrape-monthly.yml`     | 5th of each month, 7 AM PT   | Scrapes monthly sources + NTD check, rebuilds master |
-| `build-deliverables.yml` | On push to `data/processed/` | Rebuilds Excel and public CSVs                       |
+| Workflow | Schedule | What it does |
+| --- | --- | --- |
+| `scrape-daily.yml` | Weekdays, 6 AM PT | Scrapes BART daily exits, commits raw data |
+| `scrape-monthly.yml` | 5th of each month, 7 AM PT | Scrapes monthly sources + NTD check, rebuilds master |
+| `build-deliverables.yml` | On push to `data/processed/` | Rebuilds Excel and public CSVs |
 
 All workflows also have a **Run workflow** button in the Actions tab for manual runs.
 
@@ -140,10 +135,10 @@ never commit keys to the repo.
 When both an agency-direct source and NTD report the same month, the master
 dataset includes both values and a variance column:
 
-| Flag          | Meaning                                                              |
-| ------------- | -------------------------------------------------------------------- |
-| _(blank)_     | Variance < 5% — within expected range                                |
-| `REVIEW`      | Variance 5–10% — worth a look                                        |
+| Flag | Meaning |
+| --- | --- |
+| *(blank)* | Variance < 5% — within expected range |
+| `REVIEW` | Variance 5–10% — worth a look |
 | `INVESTIGATE` | Variance > 10% — do not publish without understanding the difference |
 
 Thresholds are in `merge/config.py`.
