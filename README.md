@@ -6,11 +6,36 @@ A reproducible, automated system for tracking Bay Area transit ridership. Pulls 
 
 Designed to run on a reporter's laptop **or** automatically via GitHub Actions.
 
-For reporters not running the workflow on their laptops and are looking for the <strong>cleaned</strong> dataset -
+For reporters not running the workflow on their laptops and are looking for the **cleaned** dataset -
 
 ## ⬇️ Download Latest Data 🚇🚌🚉
 
-## [![🚀 Download Excel 🚀](https://img.shields.io/badge/🚀_Download_Excel-green?style=for-the-badge)](https://github.com/alariosjx/bcn-transit-tracker/raw/main/data/public/bcn_transit_master.xlsx)
+## [🚀 Download Excel 🚀](https://github.com/alariosjx/bcn-transit-tracker/raw/main/data/public/bcn_transit_master.xlsx)
+
+---
+
+## 📊 Visualizations
+
+> BCN-styled charts generated from the latest data. Click the button to browse all files, or preview them below.
+
+[![View all charts in viz/](https://img.shields.io/badge/📂%20Browse%20Charts-viz%2F%20folder-0075db?style=for-the-badge)](https://github.com/alariosjx/bcn-transit-tracker/tree/main/viz)
+
+<!--
+  HOW TO ADD A CHART PREVIEW:
+  Replace the filenames below with your actual .png filenames from the viz/ folder.
+  GitHub serves them via raw.githubusercontent.com — no extra hosting needed.
+  Template:
+  ![Chart description](https://raw.githubusercontent.com/alariosjx/bcn-transit-tracker/main/viz/YOUR_FILE.png)
+-->
+
+|                                                                                                                                |                                                                                                                        |
+| :----------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------: |
+| ![BART Monthly Ridership](https://raw.githubusercontent.com/alariosjx/bcn-transit-tracker/main/viz/bart_monthly_ridership.png) | ![Year-over-Year Change](https://raw.githubusercontent.com/alariosjx/bcn-transit-tracker/main/viz/bart_yoy_change.png) |
+|                                                      _BART monthly exits_                                                      |                                                _Year-over-year change_                                                 |
+
+> 💡 **Adding a new chart?** Drop the `.png` into `viz/`, commit it, and add a row to the table above using the template in the comment.
+
+---
 
 ## What this produces
 
@@ -34,7 +59,7 @@ For reporters not running the workflow on their laptops and are looking for the 
 
 ## Setup (one time)
 
-```bash
+```
 # Clone the repo
 git clone https://github.com/alariosjx/bcn-transit-tracker.git
 cd bcn-transit-tracker
@@ -50,7 +75,7 @@ pip install -r requirements.txt
 
 For the R/analysis layer:
 
-```r
+```
 # In RStudio, open analysis/bcn_transit_tracker.Rproj
 renv::restore()
 ```
@@ -59,7 +84,7 @@ renv::restore()
 
 ## Running locally
 
-```bash
+```
 # Activate your venv first
 source venv/bin/activate
 
@@ -75,7 +100,7 @@ python export/to_excel.py
 
 Or run everything in one command:
 
-```bash
+```
 python run_all.py
 ```
 
