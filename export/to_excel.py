@@ -321,76 +321,90 @@ def tab_readme(wb) -> None:
 
 
 # ── Datawrapper CSVs ──────────────────────────────────────────────────────────
+# ── Datawrapper CSVs ──────────────────────────────────────────────────────────
 def write_datawrapper_csvs(master: pd.DataFrame) -> None:
     # Base: all non-provisional rows — never mutate this directly
     base = master[~master["is_provisional"]].copy()
 
-    # 1. Time series — full history, long format
-    ts = base[["date", "agency_name", "value", "source"]].copy()
-    ts["date"] = ts["date"].dt.strftime("%Y-%m-%d")
-    ts = ts.sort_values("date")
-    ts.to_csv(DW_DIR / "bart_monthly_timeseries.csv", index=False)
-
-    # 2. YoY bar chart — current year vs prior year only
-    yoy = base.copy()
-    yoy["year"]        = yoy["date"].dt.year
-    yoy["month"]       = yoy["date"].dt.month
-    yoy["month_label"] = yoy["date"].dt.strftime("%b")
-
-    current_year = yoy["year"].max()
-    prior_year   = current_year - 1
-
-    yoy_wide = yoy[yoy["year"].isin([prior_year, current_year])].pivot_table(
-        index=["month", "month_label"],
-        columns="year", values="value", aggfunc="sum"
-    ).reset_index()
-    yoy_wide.columns = [str(c) for c in yoy_wide.columns]
-
-    for yr in [str(prior_year), str(current_year)]:
-        if yr in yoy_wide.columns:
-            yoy_wide[yr] = pd.to_numeric(yoy_wide[yr], errors="coerce").apply(
-                lambda x: int(x) if pd.notna(x) else ""
-            )
-
-    month_order = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-    yoy_wide["month_label"] = pd.Categorical(yoy_wide["month_label"], categories=month_order, ordered=True)
-
-    cols = ["month_label", str(prior_year), str(current_year)]
-    cols = [c for c in cols if c in yoy_wide.columns]
-    yoy_wide.sort_values("month_label")[cols].to_csv(
-        DW_DIR / "bart_yoy_comparison.csv", index=False
-    )
-
-    # 3. Recovery tracker — % of 2019 baseline
-    # BART: NTD 2019 same-month baseline
-    # Muni: SFMTA's own 2019 baseline (methodology matches their reporting)
-    rec = base.copy()
-    rec["year"]  = rec["date"].dt.year
-    rec["month"] = rec["date"].dt.month
-
-    ntd_baseline = rec[rec["year"] == 2019][["agency_name", "month", "value"]].rename(
-        columns={"value": "baseline_2019"}
-    )
-    rec = rec[rec["year"] >= 2020].merge(ntd_baseline, on=["agency_name", "month"], how="left")
-
-    # Apply SFMTA baselines for Muni
+    # Load SFMTA baselines once
     muni_baselines = load_muni_baselines()
-    if muni_baselines:
-        muni_bl_df = pd.DataFrame([
-            {"month": m, "baseline_sfmta": v} for m, v in muni_baselines.items()
-        ])
-        rec = rec.merge(muni_bl_df, on="month", how="left")
-        mask = (rec["agency_name"] == "San Francisco Municipal Railway") & rec["baseline_sfmta"].notna()
-        rec.loc[mask, "baseline_2019"] = rec.loc[mask, "baseline_sfmta"]
-        rec = rec.drop(columns=["baseline_sfmta"], errors="ignore")
 
-    rec["recovery_pct"] = (rec["value"] / rec["baseline_2019"] * 100).round(1)
-    rec["date"]         = rec["date"].dt.strftime("%Y-%m-%d")
-    rec[["agency_name", "date", "value", "baseline_2019", "recovery_pct"]].to_csv(
-        DW_DIR / "bart_recovery_tracker.csv", index=False
-    )
+    # Agency configs for per-agency CSV generation
+    agencies = {
+        "bart": "Bay Area Rapid Transit",
+        "muni": "San Francisco Municipal Railway",
+    }
 
-    log.info(f"Wrote 3 Datawrapper CSVs → {DW_DIR}")
+    for agency_id, agency_name in agencies.items():
+        adf = base[base["agency_name"] == agency_name].copy()
+        if adf.empty:
+            continue
+
+        prefix = agency_id  # e.g. "bart" or "muni"
+
+        # 1. Time series — full history, long format
+        ts = adf[["date", "agency_name", "value", "source"]].copy()
+        ts["date"] = ts["date"].dt.strftime("%Y-%m-%d")
+        ts = ts.sort_values("date")
+        ts.to_csv(DW_DIR / f"{prefix}_monthly_timeseries.csv", index=False)
+
+        # 2. YoY bar chart — current year vs prior year only
+        yoy = adf.copy()
+        yoy["year"]        = yoy["date"].dt.year
+        yoy["month"]       = yoy["date"].dt.month
+        yoy["month_label"] = yoy["date"].dt.strftime("%b")
+
+        current_year = yoy["year"].max()
+        prior_year   = current_year - 1
+
+        yoy_wide = yoy[yoy["year"].isin([prior_year, current_year])].pivot_table(
+            index=["month", "month_label"],
+            columns="year", values="value", aggfunc="sum"
+        ).reset_index()
+        yoy_wide.columns = [str(c) for c in yoy_wide.columns]
+
+        for yr in [str(prior_year), str(current_year)]:
+            if yr in yoy_wide.columns:
+                yoy_wide[yr] = pd.to_numeric(yoy_wide[yr], errors="coerce").apply(
+                    lambda x: int(x) if pd.notna(x) else ""
+                )
+
+        month_order = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+        yoy_wide["month_label"] = pd.Categorical(yoy_wide["month_label"], categories=month_order, ordered=True)
+
+        cols = ["month_label", str(prior_year), str(current_year)]
+        cols = [c for c in cols if c in yoy_wide.columns]
+        yoy_wide.sort_values("month_label")[cols].to_csv(
+            DW_DIR / f"{prefix}_yoy_comparison.csv", index=False
+        )
+
+        # 3. Recovery tracker — % of 2019 baseline
+        rec = adf.copy()
+        rec["year"]  = rec["date"].dt.year
+        rec["month"] = rec["date"].dt.month
+
+        if agency_id == "muni" and muni_baselines:
+            # Use SFMTA's own baseline
+            muni_bl_df = pd.DataFrame([
+                {"month": m, "baseline_2019": v} for m, v in muni_baselines.items()
+            ])
+            rec = rec[rec["year"] >= 2020].merge(muni_bl_df, on="month", how="left")
+        else:
+            # Use NTD 2019 same-month baseline
+            ntd_baseline = rec[rec["year"] == 2019][["month", "value"]].rename(
+                columns={"value": "baseline_2019"}
+            )
+            rec = rec[rec["year"] >= 2020].merge(ntd_baseline, on="month", how="left")
+
+        rec["recovery_pct"] = (rec["value"] / rec["baseline_2019"] * 100).round(1)
+        rec["date"]         = rec["date"].dt.strftime("%Y-%m-%d")
+        rec[["agency_name", "date", "value", "baseline_2019", "recovery_pct"]].to_csv(
+            DW_DIR / f"{prefix}_recovery_tracker.csv", index=False
+        )
+
+        log.info(f"Wrote Datawrapper CSVs for {agency_id}")
+
+    log.info(f"Wrote all Datawrapper CSVs → {DW_DIR}")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
