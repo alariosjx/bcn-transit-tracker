@@ -30,6 +30,9 @@ jobs:
       - name: Scrape Muni
         run: python scrapers/agencies/muni.py
 
+      - name: Scrape SMART
+        run: python scrapers/agencies/smart.py
+
       - name: Scrape NTD
         run: python scrapers/agencies/ntd.py
 

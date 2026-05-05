@@ -37,7 +37,7 @@ FLAG_WARN = "FFF3CD"
 def header_row(ws, row: int, ncols: int) -> None:
     for col in range(1, ncols + 1):
         cell = ws.cell(row=row, column=col)
-        cell.font      = Font(bold=True, color="FFFFFF", name="Arial", size=10)
+        cell.font      = Font(bold=True, color="FFFFFF", name="Arial", size=16)
         cell.fill      = PatternFill("solid", fgColor=BCN_RED)
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
@@ -45,8 +45,8 @@ def header_row(ws, row: int, ncols: int) -> None:
 def freeze_autofit(ws, freeze: str = "A2") -> None:
     ws.freeze_panes = freeze
     for col_cells in ws.columns:
-        max_len = max((len(str(c.value)) for c in col_cells if c.value), default=8)
-        ws.column_dimensions[get_column_letter(col_cells[0].column)].width = min(max_len + 2, 45)
+        max_len = max((len(str(c.value)) for c in col_cells if c.value), default=10)
+        ws.column_dimensions[get_column_letter(col_cells[0].column)].width = max(min(max_len + 4, 80), 12)
 
 
 def write_df(ws, df: pd.DataFrame, start_row: int = 1) -> None:
@@ -57,7 +57,7 @@ def write_df(ws, df: pd.DataFrame, start_row: int = 1) -> None:
         for ci, val in enumerate(row, 1):
             cell = ws.cell(row=ri, column=ci)
             cell.value     = None if (isinstance(val, float) and pd.isna(val)) else val
-            cell.font      = Font(name="Arial", size=10)
+            cell.font      = Font(name="Arial", size=16)
             cell.alignment = Alignment(vertical="center")
             if ri % 2 == 0:
                 cell.fill = PatternFill("solid", fgColor=BCN_GRAY)
@@ -103,7 +103,6 @@ def tab_summary(wb, master: pd.DataFrame) -> None:
     df["year"]  = df["date"].dt.year
     df["month"] = df["date"].dt.month
 
-    # Load SFMTA's own baselines for accurate Muni recovery %
     muni_baselines = load_muni_baselines()
 
     rows = []
@@ -114,11 +113,16 @@ def tab_summary(wb, master: pd.DataFrame) -> None:
             continue
 
         agency_name = adf["agency_name"].iloc[0]
-        latest      = adf.iloc[-1]
-        prev        = adf.iloc[-2]
 
-        same_ly   = adf[(adf["year"] == latest["year"] - 1) & (adf["month"] == latest["month"])]
-        base_2019 = adf[(adf["year"] == 2019) & (adf["month"] == latest["month"])]
+        # Use only complete (non-provisional) months for summary stats
+        adf_complete = adf[~adf["is_provisional"]]
+        if adf_complete.empty:
+            continue
+        latest = adf_complete.iloc[-1]
+        prev   = adf_complete.iloc[-2] if len(adf_complete) >= 2 else None
+
+        same_ly   = adf_complete[(adf_complete["year"] == latest["year"] - 1) & (adf_complete["month"] == latest["month"])]
+        base_2019 = adf_complete[(adf_complete["year"] == 2019) & (adf_complete["month"] == latest["month"])]
 
         # YoY
         yoy_pct, yoy_text = None, "No prior year data"
@@ -130,16 +134,19 @@ def tab_summary(wb, master: pd.DataFrame) -> None:
 
         # MoM
         mom_pct, mom_text = None, "No prior month"
-        if prev["value"] > 0:
+        if prev is not None and prev["value"] > 0:
             mom_pct  = (latest["value"] - prev["value"]) / prev["value"]
             arrow    = "▲" if mom_pct >= 0 else "▼"
             mom_text = f"{arrow} {abs(mom_pct):.1%} vs {prev['date'].strftime('%b %Y')} ({int(prev['value']):,} → {int(latest['value']):,})"
 
         # Recovery vs 2019
-        # Muni: use SFMTA's own baseline — methodology matches their reporting
+        # SMART: service began Aug 2017, pre-pandemic baseline not meaningful
+        # Muni: use SFMTA's own baseline
         # All others: use NTD 2019 same-month value
         rec_pct, rec_text = None, "No 2019 baseline"
-        if agency_id == "muni" and latest["date"].month in muni_baselines:
+        if agency_id == "smart":
+            rec_text = "N/A — service began 2017, pre-pandemic baseline not comparable"
+        elif agency_id == "muni" and latest["date"].month in muni_baselines:
             base     = muni_baselines[latest["date"].month]
             rec_pct  = latest["value"] / base
             rec_text = f"{rec_pct:.1%} of {latest['date'].strftime('%b')} 2019 ({int(base):,} SFMTA baseline)"
@@ -159,8 +166,6 @@ def tab_summary(wb, master: pd.DataFrame) -> None:
             flags.append(f"Large month-over-month swing ({mom_pct:+.1%})")
         if str(latest.get("flag", "")) in ("REVIEW", "INVESTIGATE"):
             flags.append(f"⚠ Data flag: {latest['flag']} — check agency vs NTD figures")
-        if latest.get("is_provisional"):
-            flags.append("Provisional — partial month, may be revised")
 
         rows.append({
             "Agency"           : agency_name,
@@ -212,7 +217,7 @@ def tab_master(wb, master: pd.DataFrame) -> None:
 def tab_monthly_pivot(wb, master: pd.DataFrame) -> None:
     ws = wb.create_sheet("Monthly Pivot")
 
-    df = master.copy()
+    df = master[~master["is_provisional"]].copy()
     df["month_label"] = df["date"].dt.strftime("%b %Y")
 
     pivot = df.pivot_table(
@@ -231,7 +236,7 @@ def tab_monthly_pivot(wb, master: pd.DataFrame) -> None:
 def tab_yoy(wb, master: pd.DataFrame) -> None:
     ws = wb.create_sheet("Year-over-Year")
 
-    df = master.copy()
+    df = master[~master["is_provisional"]].copy()
     df["year"]  = df["date"].dt.year
     df["month"] = df["date"].dt.month
 
@@ -291,11 +296,14 @@ def tab_readme(wb) -> None:
         ["SOURCES"],
         ["bart.gov",        "BART daily paid exits. Scraped automatically each weekday at 6 AM PT."],
         ["sfmta.com",       "Muni total boardings. Scraped automatically each weekday at 6 AM PT."],
+        ["sonomamarintrain.org", "SMART monthly boardings. Scraped automatically each weekday at 6 AM PT."],
         ["NTD Monthly",     "National Transit Database. ~2 month lag. Adjusted and finalized."],
         [""],
         ["NOTES"],
         ["Muni recovery %", "Uses SFMTA's own 2019 baseline — methodology matches SFMTA reporting."],
         ["BART recovery %", "Uses NTD 2019 same-month as baseline."],
+        ["SMART recovery %","Not shown — SMART began service Aug 2017, pre-pandemic baseline not comparable."],
+        ["Summary tab",     "Shows most recent COMPLETE month only — provisional/partial months excluded."],
         [""],
         ["CONTACT"],
         ["Andres Jimenez Larios | Bay City News"],
@@ -321,18 +329,14 @@ def tab_readme(wb) -> None:
 
 
 # ── Datawrapper CSVs ──────────────────────────────────────────────────────────
-# ── Datawrapper CSVs ──────────────────────────────────────────────────────────
 def write_datawrapper_csvs(master: pd.DataFrame) -> None:
-    # Base: all non-provisional rows — never mutate this directly
     base = master[~master["is_provisional"]].copy()
-
-    # Load SFMTA baselines once
     muni_baselines = load_muni_baselines()
 
-    # Agency configs for per-agency CSV generation
     agencies = {
-        "bart": "Bay Area Rapid Transit",
-        "muni": "San Francisco Municipal Railway",
+        "bart" : "Bay Area Rapid Transit",
+        "muni" : "San Francisco Municipal Railway",
+        "smart": "Sonoma-Marin Area Rail Transit",
     }
 
     for agency_id, agency_name in agencies.items():
@@ -340,16 +344,11 @@ def write_datawrapper_csvs(master: pd.DataFrame) -> None:
         if adf.empty:
             continue
 
-        prefix = agency_id  # e.g. "bart" or "muni"
-
         # 1. Time series — full history, long format
         ts = adf[["date", "agency_name", "value", "source"]].copy()
 
-        # Muni: NTD uses Unlinked Passenger Trips (~76% of SFMTA's boarding count),
-        # so mixing NTD pre-2020 with SFMTA post-2020 makes 2026 appear to exceed 2019
-        # when it hasn't (SFMTA's own March 2019 baseline is 17.6M vs 2026 March 14.9M).
-        # Drop NTD rows and replace with SFMTA-scale 2019 baseline so the chart is
-        # methodologically consistent.
+        # Muni: drop NTD rows (incompatible UPT methodology) and prepend
+        # SFMTA's own 2019 baselines so the timeseries is methodologically consistent
         if agency_id == "muni" and muni_baselines:
             ts = ts[ts["source"] != "NTD"].copy()
             baseline_rows = pd.DataFrame([
@@ -363,7 +362,7 @@ def write_datawrapper_csvs(master: pd.DataFrame) -> None:
 
         ts["date"] = ts["date"].dt.strftime("%Y-%m-%d")
         ts = ts.sort_values("date")
-        ts.to_csv(DW_DIR / f"{prefix}_monthly_timeseries.csv", index=False)
+        ts.to_csv(DW_DIR / f"{agency_id}_monthly_timeseries.csv", index=False)
 
         # 2. YoY bar chart — current year vs prior year only
         yoy = adf.copy()
@@ -388,26 +387,27 @@ def write_datawrapper_csvs(master: pd.DataFrame) -> None:
 
         month_order = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
         yoy_wide["month_label"] = pd.Categorical(yoy_wide["month_label"], categories=month_order, ordered=True)
-
         cols = ["month_label", str(prior_year), str(current_year)]
         cols = [c for c in cols if c in yoy_wide.columns]
         yoy_wide.sort_values("month_label")[cols].to_csv(
-            DW_DIR / f"{prefix}_yoy_comparison.csv", index=False
+            DW_DIR / f"{agency_id}_yoy_comparison.csv", index=False
         )
 
         # 3. Recovery tracker — % of 2019 baseline
+        # SMART: skip recovery tracker (service began 2017, no meaningful 2019 baseline)
+        if agency_id == "smart":
+            continue
+
         rec = adf.copy()
         rec["year"]  = rec["date"].dt.year
         rec["month"] = rec["date"].dt.month
 
         if agency_id == "muni" and muni_baselines:
-            # Use SFMTA's own baseline
             muni_bl_df = pd.DataFrame([
                 {"month": m, "baseline_2019": v} for m, v in muni_baselines.items()
             ])
             rec = rec[rec["year"] >= 2020].merge(muni_bl_df, on="month", how="left")
         else:
-            # Use NTD 2019 same-month baseline
             ntd_baseline = rec[rec["year"] == 2019][["month", "value"]].rename(
                 columns={"value": "baseline_2019"}
             )
@@ -416,7 +416,7 @@ def write_datawrapper_csvs(master: pd.DataFrame) -> None:
         rec["recovery_pct"] = (rec["value"] / rec["baseline_2019"] * 100).round(1)
         rec["date"]         = rec["date"].dt.strftime("%Y-%m-%d")
         rec[["agency_name", "date", "value", "baseline_2019", "recovery_pct"]].to_csv(
-            DW_DIR / f"{prefix}_recovery_tracker.csv", index=False
+            DW_DIR / f"{agency_id}_recovery_tracker.csv", index=False
         )
 
         log.info(f"Wrote Datawrapper CSVs for {agency_id}")

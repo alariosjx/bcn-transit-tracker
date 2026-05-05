@@ -53,6 +53,19 @@ AGENCIES = {
             "Variance up to 45% is expected and documented."
         ),
     },
+    "smart": {
+        "agency_name"    : "Sonoma-Marin Area Rail Transit",
+        "ntd_id"         : "90299",
+        "ntd_modes"      : ["CR"],
+        "primary_source" : "agency_direct",
+        "scraper"        : "scrapers.agencies.smart",
+        "variance_ignore": True,
+        "notes"          : (
+            "SMART Excel matches NTD CR exactly from Oct 2022 onward (APC system). "
+            "Aug 2017 shows variance — NTD startup artifact, agency number is correct. "
+            "variance_ignore=True since numbers are verified identical in normal operation."
+        ),
+    },
     # "ac_transit": {
     #     "agency_name"    : "AC Transit",
     #     "ntd_id"         : "90014",

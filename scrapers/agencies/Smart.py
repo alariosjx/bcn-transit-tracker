@@ -163,7 +163,7 @@ def parse(excel_bytes: bytes) -> pd.DataFrame:
     df_out = pd.DataFrame(rows)
 
     # Deduplicate — prefer most recent FY for overlapping months
-    df_out = df_out.sort_values(["date", "fy"]).drop_duplicates("date", keep="last")
+    df_out = df_out.sort_values(["date", "fy"]).drop_duplicates("date", keep="first")
     df_out = df_out.sort_values("date").reset_index(drop=True)
 
     log.info(f"Parsed {len(df_out)} monthly rows")
