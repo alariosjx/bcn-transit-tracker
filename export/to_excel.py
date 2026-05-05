@@ -344,6 +344,23 @@ def write_datawrapper_csvs(master: pd.DataFrame) -> None:
 
         # 1. Time series — full history, long format
         ts = adf[["date", "agency_name", "value", "source"]].copy()
+
+        # Muni: NTD uses Unlinked Passenger Trips (~76% of SFMTA's boarding count),
+        # so mixing NTD pre-2020 with SFMTA post-2020 makes 2026 appear to exceed 2019
+        # when it hasn't (SFMTA's own March 2019 baseline is 17.6M vs 2026 March 14.9M).
+        # Drop NTD rows and replace with SFMTA-scale 2019 baseline so the chart is
+        # methodologically consistent.
+        if agency_id == "muni" and muni_baselines:
+            ts = ts[ts["source"] != "NTD"].copy()
+            baseline_rows = pd.DataFrame([
+                {"date": pd.Timestamp(f"2019-{m:02d}-01"),
+                 "agency_name": agency_name,
+                 "value": v,
+                 "source": "sfmta.com"}
+                for m, v in sorted(muni_baselines.items())
+            ])
+            ts = pd.concat([baseline_rows, ts], ignore_index=True)
+
         ts["date"] = ts["date"].dt.strftime("%Y-%m-%d")
         ts = ts.sort_values("date")
         ts.to_csv(DW_DIR / f"{prefix}_monthly_timeseries.csv", index=False)

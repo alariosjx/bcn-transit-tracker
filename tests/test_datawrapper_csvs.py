@@ -67,7 +67,8 @@ def run_tests():
     print("\n── Muni Timeseries CSV ──────────────────────────────────────────────")
     ts_muni = pd.read_csv(DW_DIR / "muni_monthly_timeseries.csv", parse_dates=["date"])
     results.append(check("Muni only — no other agencies", ts_muni["agency_name"].nunique() == 1))
-    results.append(check("Starts from 2002 (NTD historical)", ts_muni["date"].min().year <= 2002))
+    results.append(check("Starts from 2019 (SFMTA-scale baseline, no NTD data)", ts_muni["date"].min().year == 2019))
+    results.append(check("No NTD-source rows (incomparable UPT methodology)", not (ts_muni["source"] == "NTD").any()))
     results.append(check("Most recent month is present", ts_muni["date"].max().year >= 2025))
     results.append(check("No missing values in value column", ts_muni["value"].notna().all()))
 
