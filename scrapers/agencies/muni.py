@@ -33,9 +33,19 @@ SOURCE_URL  = "https://transtat.sfmta.com/t/public/views/SystemwideRidershipReco
 
 # ── Fetch ─────────────────────────────────────────────────────────────────────
 def fetch() -> str:
-    resp = fetch_url(SOURCE_URL, timeout=30)
-    log.info(f"Received {len(resp.content):,} bytes from SFMTA")
-    return resp.text
+    for attempt in range(1, 4):
+        try:
+            resp = fetch_url(SOURCE_URL, timeout=60)
+            log.info(f"Received {len(resp.content):,} bytes from SFMTA")
+            return resp.text
+        except requests.exceptions.ReadTimeout:
+            if attempt < 3:
+                log.warning(f"Timeout on attempt {attempt}, retrying in {5 * attempt} seconds...")
+                time.sleep(5 * attempt)  # Exponential backoff: 5s, 10s, 15s
+            else:
+                log.error("Failed to fetch data after 3 attempts")
+                raise
+    
 
 
 # ── Parse ─────────────────────────────────────────────────────────────────────
