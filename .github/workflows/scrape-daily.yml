@@ -48,4 +48,5 @@ jobs:
           git config user.email "data@baycitynews.com"
           git add data/public/
           git diff --staged --quiet || git commit -m "chore: scrape bart $(date -u +%Y-%m-%d)"
+          git pull --rebase origin main  # Pull the latest changes before pushing
           git push
