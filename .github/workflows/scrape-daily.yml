@@ -46,7 +46,7 @@ jobs:
         run: |
           git config user.name  "bcn-transit-bot"
           git config user.email "data@baycitynews.com"
+          git pull --rebase origin main  
           git add data/public/
           git diff --staged --quiet || git commit -m "chore: scrape bart $(date -u +%Y-%m-%d)"
-          git pull --rebase origin main  # Pull the latest changes before pushing
           git push
