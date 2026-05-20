@@ -45,14 +45,15 @@ For reporters not running the workflow on their laptops and are looking for the 
 
 ## Agencies covered
 
-| Agency | Source | Frequency | NTD ID |
-| --- | --- | --- | --- |
-| BART | bart.gov daily exits | Daily | 90003 |
-| *More agencies added one at a time as each is verified* |  |  |  |
+-- BART
+-- San Francisco Municipal Transportation Agency (Muni)
+-- Sonoma Marin Area Rail Transit (SMART)
+-- Alameda-Contra Costa Transportation District (AC Transit)
+-- San Francisco Bay Ferry, operated by the Water Emergency Transportation Authority
 
 ---
 
-## Setup (one time)
+## Setup on your own local computer (one time)
 
 ```
 # Clone the repo
