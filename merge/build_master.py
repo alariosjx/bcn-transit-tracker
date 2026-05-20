@@ -22,11 +22,7 @@ PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Load latest raw scrape for an agency ─────────────────────────────────────
 def load_latest_raw(agency_id: str) -> pd.DataFrame | None:
-    """
-    Finds the most recently dated raw CSV for this agency in data/raw/.
-    Returns None if no file found.
-    """
-    pattern = str(RAW_DIR / f"{agency_id}_*.csv")
+    pattern = str(RAW_DIR / f"{agency_id}_2*.csv")
     files   = sorted(glob.glob(pattern), reverse=True)
     if not files:
         log.warning(f"No raw file found for {agency_id}")
@@ -35,6 +31,17 @@ def load_latest_raw(agency_id: str) -> pd.DataFrame | None:
     log.info(f"Loading raw: {latest}")
     return pd.read_csv(latest, parse_dates=["date"])
 
+#-─ Load BART backfill data ─────────────────────────────────────────────────
+
+def load_bart_backfill() -> pd.DataFrame | None:
+    path = RAW_DIR / "bart_backfill.csv"
+    if not path.exists():
+        log.warning("No bart_backfill.csv found — run scrapers/agencies/bart_backfill.py")
+        return None
+    df = pd.read_csv(path, parse_dates=["date"])
+    log.info(f"Loaded BART backfill: {len(df)} rows ({df['date'].min().strftime('%b %Y')} → {df['date'].max().strftime('%b %Y')})")
+    return df
+
 
 # ── Load NTD monthly data ─────────────────────────────────────────────────────
 def load_ntd() -> pd.DataFrame | None:
@@ -42,7 +49,7 @@ def load_ntd() -> pd.DataFrame | None:
     Loads NTD data from the Socrata API scrape (data/raw/ntd_*.csv).
     Falls back gracefully if no file found.
     """
-    pattern = str(RAW_DIR / "ntd_*.csv")
+    pattern = str(RAW_DIR / "ntd_2*.csv")
     files   = sorted(glob.glob(pattern), reverse=True)
     if not files:
         log.warning("No NTD raw file found. Run scrapers/agencies/ntd.py first.")
@@ -109,9 +116,24 @@ def build_agency(agency_id: str, config: dict, ntd: pd.DataFrame | None) -> pd.D
     ntd_modes    = config["ntd_modes"]
     use_direct   = config["primary_source"] == "agency_direct"
 
-    # Load agency-direct data if available
-    direct_df = load_latest_raw(agency_id) if use_direct else None
-
+    # Load agency-direct data
+    if use_direct:
+        direct_df = load_latest_raw(agency_id)
+        
+        # For BART: merge backfill (2018-2024) with daily scraper (2025+)
+        # Backfill uses bart.gov OD archives for source consistency
+        if agency_id == "bart":
+            backfill = load_bart_backfill()
+            if backfill is not None and direct_df is not None:
+                # Combine: backfill first, then daily scraper on top
+                # sort_values + drop_duplicates keeps the last (daily scraper) for overlapping dates
+                combined = pd.concat([backfill, direct_df], ignore_index=True)
+                combined["date"] = combined["date"].dt.to_period("M").dt.to_timestamp()
+                direct_df = combined.sort_values("date").drop_duplicates("date", keep="last")
+            elif backfill is not None:
+                direct_df = backfill
+    else:
+        direct_df = None
     # Load NTD data for this agency
     ntd_agency = get_ntd_for_agency(ntd, ntd_id, ntd_modes) if ntd is not None else pd.DataFrame()
 

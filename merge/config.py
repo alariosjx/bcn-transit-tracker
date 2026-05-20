@@ -34,9 +34,10 @@ AGENCIES = {
         "ntd_modes"      : ["HR"],
         "primary_source" : "agency_direct",
         "scraper"        : "scrapers.agencies.bart",
+        "variance_ignore": True,
         "notes"          : (
-            "BART exits run ~7.5% lower than NTD adjusted UPT. "
-            "Variance up to 10% is expected and documented."
+            "bart.gov exits and NTD UPT are different metrics — variance is expected and documented. "
+            "Source priority: bart.gov OD archives (Feb 2018–Dec 2024), daily scraper (Jan 2025+), NTD (Jan 2002–Jan 2018)."
         ),
     },
     # ── Future agencies — uncomment and build scraper when ready ──────────────
