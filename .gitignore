@@ -5,4 +5,5 @@ data/public/~$*
 **/.DS_Store
 data/raw/*.csv
 !data/raw/_scrape_log.csv
-data/processed/*.csv
+data/processed/*.csv**/.DS_Store
+**/__pycache__/
