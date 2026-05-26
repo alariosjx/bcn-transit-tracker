@@ -116,6 +116,15 @@ FISCAL_CONTEXT = {
         "by Measure Q sales tax in Sonoma and Marin counties. Ridership has grown steadily "
         "since service began in 2017."
     ),
+    "actransit": (
+        "AC Transit faces a $130M structural deficit. Included in the $590M state bridge "
+        "loan package. Dependent on Nov 2026 regional ballot measure for long-term stability."
+    ),
+    "caltrain": (
+        "Caltrain completed its electrification project in 2024, boosting ridership significantly. "
+        "Faces long-term funding uncertainty but not in immediate crisis. Dependent on "
+        "GoPass corporate program and fare revenue for operating costs."
+    ),
 }
 
 GLOSSARY = [
@@ -648,6 +657,8 @@ def write_datawrapper_csvs(master: pd.DataFrame) -> None:
         "bart" : "Bay Area Rapid Transit",
         "muni" : "San Francisco Municipal Railway",
         "smart": "Sonoma-Marin Area Rail Transit",
+        "actransit": "AC Transit",
+        "caltrain" : "Caltrain",
     }
 
     for agency_id, agency_name in agencies.items():
@@ -730,6 +741,8 @@ def run():
     tab_agency(wb, "bart",  "Bay Area Rapid Transit",          master, financials)
     tab_agency(wb, "muni",  "San Francisco Municipal Railway", master, financials)
     tab_agency(wb, "smart", "Sonoma-Marin Area Rail Transit",  master, financials)
+    tab_agency(wb, "actransit", "AC Transit",  master, financials)
+    tab_agency(wb, "caltrain",  "Caltrain",    master, financials)
 
     wb.save(EXCEL_OUT)
     log.info(f"Saved Excel: {EXCEL_OUT}")
