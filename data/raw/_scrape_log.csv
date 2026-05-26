@@ -42,3 +42,19 @@ scraped_at,agency_id,status,rows_written,notes
 2026-05-25T16:59:34Z,bart,success,17,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.
 2026-05-25T16:59:37Z,muni,success,72,
 2026-05-25T16:59:37Z,ntd,success,2281,
+2026-05-26T15:22:41Z,ntd,success,3726,
+2026-05-26T16:16:31Z,ntd_financials,success,47,
+2026-05-26T16:17:18Z,bart,success,17,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.
+2026-05-26T16:17:30Z,muni,error,0,name 'requests' is not defined
+2026-05-26T16:17:43Z,bart,success,17,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.
+2026-05-26T16:18:19Z,muni,success,72,
+2026-05-26T16:18:21Z,smart,success,105,
+2026-05-26T16:18:23Z,ntd,success,3726,
+2026-05-26T16:18:25Z,ntd_financials,success,47,
+2026-05-26T16:22:21Z,ntd,success,7170,
+2026-05-26T16:35:17Z,ntd,success,16710,
+2026-05-26T16:36:25Z,bart,success,17,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.
+2026-05-26T16:36:28Z,muni,success,72,
+2026-05-26T16:36:31Z,smart,success,105,
+2026-05-26T16:36:35Z,ntd,success,16710,
+2026-05-26T16:36:37Z,ntd_financials,success,120,
