@@ -67,6 +67,30 @@ AGENCIES = {
             "variance_ignore=True since numbers are verified identical in normal operation."
         ),
     },
+    "actransit": {
+        "agency_name"    : "AC Transit",
+        "ntd_id"         : "90014",
+        "ntd_modes"      : ["MB", "RB", "CB"],
+        "primary_source" : "ntd",
+        "scraper"        : None,
+        "variance_ignore": False,
+        "notes"          : (
+            "AC Transit NTD modes: MB (motor bus) + RB (rapid bus) + CB (commuter bus) summed. "
+            "CB is transbay bus service between East Bay and SF — tracked separately for story context."
+        ),
+    },
+    "caltrain": {
+        "agency_name"    : "Caltrain",
+        "ntd_id"         : "90134",
+        "ntd_modes"      : ["CR"],
+        "primary_source" : "ntd",
+        "scraper"        : None,
+        "variance_ignore": False,
+        "notes"          : (
+            "Caltrain NTD mode CR only. MB rows (~417K/year) are shuttles — excluded. "
+            "Tableau public dashboard available but not scrapable; NTD is authoritative."
+        ),
+    },
     # "ac_transit": {
     #     "agency_name"    : "AC Transit",
     #     "ntd_id"         : "90014",
