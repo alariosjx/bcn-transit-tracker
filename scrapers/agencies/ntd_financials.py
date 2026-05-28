@@ -44,7 +44,7 @@ def fetch() -> pd.DataFrame:
     api_url = (
         f"{SOURCE_URL}"
         f"?$where=ntd_id in({ntd_ids_quoted})"
-        "&$limit=5000"
+        "&$limit=10000"
     )
 
     log.info(f"Fetching NTD annual financials for {len(ntd_ids)} agencies...")

@@ -125,6 +125,50 @@ FISCAL_CONTEXT = {
         "Faces long-term funding uncertainty but not in immediate crisis. Dependent on "
         "GoPass corporate program and fare revenue for operating costs."
     ),
+    "sfbayferry" : ("WETA operates SF Bay Ferry. Ridership has grown significantly post-pandemic. Expanding service to new routes."
+    ),
+    "samtrans"   : ("SamTrans faces structural deficits. Included in regional funding discussions tied to Nov 2026 ballot."
+    ),
+    "vta"        : ("VTA faces a $100M+ deficit. Included in $590M state bridge loan package. Dependent on Nov 2026 ballot."
+    ),
+    "ggferry"    : ("Golden Gate Ferry is financially stable relative to bus operations. Ridership recovering well post-pandemic."
+                    ),
+    "ggbus"      : ("Golden Gate Bus faces significant deficits. Transbay routes dependent on commuter ridership recovery."
+                    ),
+    "marin"      : ("Marin Transit is a relatively small system. Financially stable with Measure A sales tax funding."
+    ),
+    "napa"       : ("NVTA operates on Measure T sales tax. Small system, not in fiscal crisis."
+                    ),
+    "vallejo"    : ("Vallejo Transit is small and locally funded. Not in immediate crisis."
+                    ),
+    "countyconnection": ("County Connection faces modest deficits. Contra Costa County sales tax funded."
+                         ),
+    "westcat"    : ("WestCAT is a small system serving western Contra Costa. Not in fiscal crisis."
+                    ),
+    "tridelta"   : ("Tri Delta Transit serves eastern Contra Costa. Small system, locally funded."
+    ),
+    "wheels"     : ("Wheels/LAVTA serves Livermore-Pleasanton-Dublin. Locally funded, not in crisis."
+    ),
+    "unioncity"  : ("Union City Transit is a small local system. Not in fiscal crisis."
+    ),
+    "alamedaferry": ("Alameda Ferry serves the Oakland-SF transbay corridor. Financially stable."
+    ),
+    "santarosa"  : ("Santa Rosa CityBus is locally funded. Not in fiscal crisis."
+    ),
+    "fairfield"  : ("Fairfield-Suisun Transit is a small system. Not in fiscal crisis."
+),
+    "vacaville"  : ("Vacaville City Coach is a small local system. Not in fiscal crisis."
+),
+    "petaluma"   : ("Petaluma Transit is a small system. Not in fiscal crisis."
+),
+    "mst"        : ("Monterey-Salinas Transit serves Monterey County. Not in immediate fiscal crisis."
+),
+    "santacruz"  : ("Santa Cruz Metro faces modest funding challenges. Locally funded."
+),
+    "sjrtd"      : ("San Joaquin RTD serves Stockton area. Faces funding challenges typical of smaller systems."
+),
+    "ace"        : ("ACE commuter rail connects Stockton to San Jose. Faces funding uncertainty post-pandemic."
+),
 }
 
 GLOSSARY = [
@@ -738,11 +782,33 @@ def run():
     tab_readme(wb)
 
     financials = load_financials()
-    tab_agency(wb, "bart",  "Bay Area Rapid Transit",          master, financials)
-    tab_agency(wb, "muni",  "San Francisco Municipal Railway", master, financials)
-    tab_agency(wb, "smart", "Sonoma-Marin Area Rail Transit",  master, financials)
-    tab_agency(wb, "actransit", "AC Transit",  master, financials)
-    tab_agency(wb, "caltrain",  "Caltrain",    master, financials)
+    tab_agency(wb, "bart",             "Bay Area Rapid Transit",                    master, financials)
+    tab_agency(wb, "muni",             "San Francisco Municipal Railway",           master, financials)
+    tab_agency(wb, "smart",            "Sonoma-Marin Area Rail Transit",            master, financials)
+    tab_agency(wb, "actransit",        "AC Transit",                                master, financials)
+    tab_agency(wb, "caltrain",         "Caltrain",                                  master, financials)
+    tab_agency(wb, "sfbayferry",       "SF Bay Ferry",                              master, financials)
+    tab_agency(wb, "samtrans",         "SamTrans",                                  master, financials)
+    tab_agency(wb, "vta",              "VTA",                                       master, financials)
+    tab_agency(wb, "ggferry",          "Golden Gate Ferry",                         master, financials)
+    tab_agency(wb, "ggbus",            "Golden Gate Bus",                           master, financials)
+    tab_agency(wb, "marin",            "Marin Transit",                             master, financials)
+    tab_agency(wb, "napa",             "Napa Valley Transportation Authority",      master, financials)
+    tab_agency(wb, "vallejo",          "Vallejo Transit",                           master, financials)
+    tab_agency(wb, "countyconnection", "County Connection",                         master, financials)
+    tab_agency(wb, "westcat",          "WestCAT",                                   master, financials)
+    tab_agency(wb, "tridelta",         "Tri Delta Transit",                         master, financials)
+    tab_agency(wb, "wheels",           "Wheels (LAVTA)",                            master, financials)
+    tab_agency(wb, "unioncity",        "Union City Transit",                        master, financials)
+    tab_agency(wb, "alamedaferry",     "Alameda Ferry",                             master, financials)
+    tab_agency(wb, "santarosa",        "Santa Rosa CityBus",                        master, financials)
+    tab_agency(wb, "fairfield",        "Fairfield-Suisun Transit",                  master, financials)
+    tab_agency(wb, "vacaville",        "Vacaville City Coach",                      master, financials)
+    tab_agency(wb, "petaluma",         "Petaluma Transit",                          master, financials)
+    tab_agency(wb, "mst",              "Monterey-Salinas Transit",                  master, financials)
+    tab_agency(wb, "santacruz",        "Santa Cruz Metro",                          master, financials)
+    tab_agency(wb, "sjrtd",            "San Joaquin RTD",                           master, financials)
+    tab_agency(wb, "ace",              "Altamont Corridor Express",                 master, financials)
 
     wb.save(EXCEL_OUT)
     log.info(f"Saved Excel: {EXCEL_OUT}")
