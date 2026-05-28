@@ -7,3 +7,5 @@ data/raw/*.csv
 !data/raw/_scrape_log.csv
 data/processed/*.csv**/.DS_Store
 **/__pycache__/
+
+data/public/bcn_transit_master.xlsx
