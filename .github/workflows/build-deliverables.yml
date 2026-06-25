@@ -39,5 +39,6 @@ jobs:
           git config user.name  "bcn-transit-bot"
           git config user.email "data@baycitynews.com"
           git add data/public/
+          git add -f data/public/bcn_transit_master.xlsx
           git diff --staged --quiet || git commit -m "chore: rebuild deliverables $(date -u +%Y-%m-%d)"
           git push

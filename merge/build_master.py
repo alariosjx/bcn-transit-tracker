@@ -144,23 +144,23 @@ def build_agency(agency_id: str, config: dict, ntd: pd.DataFrame | None) -> pd.D
     if not ntd_agency.empty:
         all_dates.update(ntd_agency["date"].dt.to_period("M").dt.to_timestamp().unique())
 
+    # Precompute period-keyed dicts — avoids O(n) date scan per month in the loop below
+    direct_by_month: dict = {}
+    if direct_df is not None and not direct_df.empty:
+        _d = direct_df.copy()
+        _d["_period"] = _d["date"].dt.to_period("M").dt.to_timestamp()
+        for _, row in _d.drop_duplicates("_period", keep="first").iterrows():
+            direct_by_month[row["_period"]] = row
+
+    ntd_by_month: dict = {}
+    if not ntd_agency.empty:
+        _n = ntd_agency.copy()
+        _n["_period"] = _n["date"].dt.to_period("M").dt.to_timestamp()
+        ntd_by_month = dict(zip(_n["_period"], _n["ntd_value"].astype(float)))
+
     for month_date in sorted(all_dates):
-
-        # Agency-direct value
-        direct_row = None
-        if direct_df is not None and not direct_df.empty:
-            mask = direct_df["date"].dt.to_period("M").dt.to_timestamp() == month_date
-            matches = direct_df[mask]
-            if not matches.empty:
-                direct_row = matches.iloc[0]
-
-        # NTD value
-        ntd_val = None
-        if not ntd_agency.empty:
-            mask = ntd_agency["date"].dt.to_period("M").dt.to_timestamp() == month_date
-            matches = ntd_agency[mask]
-            if not matches.empty:
-                ntd_val = float(matches.iloc[0]["ntd_value"])
+        direct_row = direct_by_month.get(month_date)
+        ntd_val    = ntd_by_month.get(month_date)
 
         # Determine primary value and source
         if direct_row is not None:

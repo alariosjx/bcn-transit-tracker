@@ -18,7 +18,8 @@ from openpyxl.chart import LineChart, Reference, Series
 from datetime import datetime, timezone
 
 from merge.config import PROCESSED_DIR, PUBLIC_DIR
-from scrapers._utils import log, now_utc
+from scrapers._utils import log
+from export.fiscal_context import FISCAL_CONTEXT, GLOSSARY
 
 PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
 DW_DIR = PUBLIC_DIR / "datawrapper"
@@ -99,87 +100,64 @@ def load_master() -> pd.DataFrame:
     return df
 
 
-# ── Fiscal context (static editorial text) ────────────────────────────────────
-FISCAL_CONTEXT = {
-    "bart": (
-        "BART faces a $376M deficit in FY2027. Emergency federal COVID relief funds are "
-        "exhausted. A $590M state bridge loan (AB/SB 117) is active through a Nov 2026 "
-        "regional ballot measure. Failure at the ballot would trigger severe service cuts."
-    ),
-    "muni": (
-        "Muni faces a $307M deficit growing to $430M by 2030. COVID relief funds exhausted. "
-        "Included in the $590M state bridge loan package. Dependent on Nov 2026 ballot measure "
-        "for long-term stability."
-    ),
-    "smart": (
-        "SMART is not in a fiscal crisis. It operates on a smaller budget funded primarily "
-        "by Measure Q sales tax in Sonoma and Marin counties. Ridership has grown steadily "
-        "since service began in 2017."
-    ),
-    "actransit": (
-        "AC Transit faces a $130M structural deficit. Included in the $590M state bridge "
-        "loan package. Dependent on Nov 2026 regional ballot measure for long-term stability."
-    ),
-    "caltrain": (
-        "Caltrain completed its electrification project in 2024, boosting ridership significantly. "
-        "Faces long-term funding uncertainty but not in immediate crisis. Dependent on "
-        "GoPass corporate program and fare revenue for operating costs."
-    ),
-    "sfbayferry" : ("WETA operates SF Bay Ferry. Ridership has grown significantly post-pandemic. Expanding service to new routes."
-    ),
-    "samtrans"   : ("SamTrans faces structural deficits. Included in regional funding discussions tied to Nov 2026 ballot."
-    ),
-    "vta"        : ("VTA faces a $100M+ deficit. Included in $590M state bridge loan package. Dependent on Nov 2026 ballot."
-    ),
-    "ggferry"    : ("Golden Gate Ferry is financially stable relative to bus operations. Ridership recovering well post-pandemic."
-                    ),
-    "ggbus"      : ("Golden Gate Bus faces significant deficits. Transbay routes dependent on commuter ridership recovery."
-                    ),
-    "marin"      : ("Marin Transit is a relatively small system. Financially stable with Measure A sales tax funding."
-    ),
-    "napa"       : ("NVTA operates on Measure T sales tax. Small system, not in fiscal crisis."
-                    ),
-    "vallejo"    : ("Vallejo Transit is small and locally funded. Not in immediate crisis."
-                    ),
-    "countyconnection": ("County Connection faces modest deficits. Contra Costa County sales tax funded."
-                         ),
-    "westcat"    : ("WestCAT is a small system serving western Contra Costa. Not in fiscal crisis."
-                    ),
-    "tridelta"   : ("Tri Delta Transit serves eastern Contra Costa. Small system, locally funded."
-    ),
-    "wheels"     : ("Wheels/LAVTA serves Livermore-Pleasanton-Dublin. Locally funded, not in crisis."
-    ),
-    "unioncity"  : ("Union City Transit is a small local system. Not in fiscal crisis."
-    ),
-    "alamedaferry": ("Alameda Ferry serves the Oakland-SF transbay corridor. Financially stable."
-    ),
-    "santarosa"  : ("Santa Rosa CityBus is locally funded. Not in fiscal crisis."
-    ),
-    "fairfield"  : ("Fairfield-Suisun Transit is a small system. Not in fiscal crisis."
-),
-    "vacaville"  : ("Vacaville City Coach is a small local system. Not in fiscal crisis."
-),
-    "petaluma"   : ("Petaluma Transit is a small system. Not in fiscal crisis."
-),
-    "mst"        : ("Monterey-Salinas Transit serves Monterey County. Not in immediate fiscal crisis."
-),
-    "santacruz"  : ("Santa Cruz Metro faces modest funding challenges. Locally funded."
-),
-    "sjrtd"      : ("San Joaquin RTD serves Stockton area. Faces funding challenges typical of smaller systems."
-),
-    "ace"        : ("ACE commuter rail connects Stockton to San Jose. Faces funding uncertainty post-pandemic."
-),
-}
+# ── Shared stats computation ──────────────────────────────────────────────────
+def _agency_stats(adf: pd.DataFrame, agency_id: str, muni_baselines: dict) -> dict:
+    """
+    Compute latest-month YoY, MoM, and recovery stats for one agency.
+    adf must already be non-provisional data, sorted by date.
+    Returns an empty dict if adf has no rows.
+    """
+    if adf.empty:
+        return {}
+    latest    = adf.iloc[-1]
+    prev      = adf.iloc[-2] if len(adf) >= 2 else None
+    lat_yr    = latest["date"].year
+    lat_mo    = latest["date"].month
+    same_ly   = adf[(adf["date"].dt.year == lat_yr - 1) & (adf["date"].dt.month == lat_mo)]
+    base_2019 = adf[(adf["date"].dt.year == 2019) & (adf["date"].dt.month == lat_mo)]
 
-GLOSSARY = [
-    ("Fare Revenue",        "Total fares collected from riders in that calendar year (NTD)."),
-    ("Operating Expenses",  "Total cost to run the system that year — staff, maintenance, administration (NTD)."),
-    ("Fare Recovery Ratio", "Share of operating costs covered by fares. Pre-pandemic BART: ~72%. 2024: ~25%."),
-    ("Cost Per Trip",       "Operating expenses divided by total annual boardings. Higher = less efficient."),
-    ("YoY Change",          "Percent change vs the same month one year prior."),
-    ("Recovery vs 2019",    "Ridership as a percent of the equivalent 2019 month — pandemic recovery indicator."),
-    ("12-Month Avg",        "Average monthly ridership over the last 12 complete months."),
-]
+    yoy_pct, yoy_text = None, "No prior year data"
+    if not same_ly.empty and same_ly["value"].iloc[0] > 0:
+        prior    = same_ly["value"].iloc[0]
+        yoy_pct  = (latest["value"] - prior) / prior
+        arrow    = "▲" if yoy_pct >= 0 else "▼"
+        yoy_text = f"{arrow} {abs(yoy_pct):.1%} vs {latest['date'].strftime('%b')} {lat_yr-1} ({int(prior):,} → {int(latest['value']):,})"
+
+    mom_pct, mom_text = None, "No prior month"
+    if prev is not None and prev["value"] > 0:
+        mom_pct  = (latest["value"] - prev["value"]) / prev["value"]
+        arrow    = "▲" if mom_pct >= 0 else "▼"
+        mom_text = f"{arrow} {abs(mom_pct):.1%} vs {prev['date'].strftime('%b %Y')} ({int(prev['value']):,} → {int(latest['value']):,})"
+
+    rec_pct, rec_text, rec_val, rec_note = None, "No 2019 baseline", "No 2019 baseline", ""
+    if agency_id == "smart":
+        rec_text = "N/A — service began 2017, pre-pandemic baseline not comparable"
+        rec_val  = "N/A — service began Aug 2017"
+    elif agency_id == "muni" and lat_mo in muni_baselines:
+        base     = muni_baselines[lat_mo]
+        rec_pct  = latest["value"] / base
+        rec_text = f"{rec_pct:.1%} of {latest['date'].strftime('%b')} 2019 ({int(base):,} SFMTA baseline)"
+        rec_val  = f"{rec_pct:.1%}"
+        rec_note = f"SFMTA baseline: {int(base):,}"
+    elif not base_2019.empty and base_2019["value"].iloc[0] > 0:
+        base     = base_2019["value"].iloc[0]
+        rec_pct  = latest["value"] / base
+        rec_text = f"{rec_pct:.1%} of {latest['date'].strftime('%b')} 2019 ({int(base):,} baseline)"
+        rec_val  = f"{rec_pct:.1%}"
+        rec_note = f"2019 baseline: {int(base):,}"
+
+    return {
+        "latest"  : latest,
+        "prev"    : prev,
+        "yoy_pct" : yoy_pct,
+        "yoy_text": yoy_text,
+        "mom_pct" : mom_pct,
+        "mom_text": mom_text,
+        "rec_pct" : rec_pct,
+        "rec_text": rec_text,
+        "rec_val" : rec_val,
+        "rec_note": rec_note,
+    }
 
 
 # ── Agency tab helpers ────────────────────────────────────────────────────────
@@ -213,53 +191,25 @@ def blank_row(ws, row: int) -> None:
 
 
 # ── Tab 1: Summary ────────────────────────────────────────────────────────────
-def tab_summary(wb, master: pd.DataFrame) -> None:
+def tab_summary(wb, master: pd.DataFrame, muni_baselines: dict) -> None:
     ws = wb.create_sheet("Summary")
     ws.sheet_properties.tabColor = "2C3E50"
 
-    df = master.copy()
-    df["year"]  = df["date"].dt.year
-    df["month"] = df["date"].dt.month
-    muni_baselines = load_muni_baselines()
     rows = []
 
-    for agency_id in df["agency_id"].unique():
-        adf = df[df["agency_id"] == agency_id].sort_values("date")
+    for agency_id in master["agency_id"].unique():
+        adf = master[master["agency_id"] == agency_id].sort_values("date")
         if len(adf) < 2:
             continue
         agency_name  = adf["agency_name"].iloc[0]
-        adf_complete = adf[~adf["is_provisional"]]
+        adf_complete = adf[~adf["is_provisional"]].copy()
         if adf_complete.empty:
             continue
-        latest = adf_complete.iloc[-1]
-        prev   = adf_complete.iloc[-2] if len(adf_complete) >= 2 else None
-        same_ly   = adf_complete[(adf_complete["year"] == latest["year"] - 1) & (adf_complete["month"] == latest["month"])]
-        base_2019 = adf_complete[(adf_complete["year"] == 2019) & (adf_complete["month"] == latest["month"])]
 
-        yoy_pct, yoy_text = None, "No prior year data"
-        if not same_ly.empty and same_ly["value"].iloc[0] > 0:
-            prior    = same_ly["value"].iloc[0]
-            yoy_pct  = (latest["value"] - prior) / prior
-            arrow    = "▲" if yoy_pct >= 0 else "▼"
-            yoy_text = f"{arrow} {abs(yoy_pct):.1%} vs {latest['date'].strftime('%b')} {latest['year']-1} ({int(prior):,} → {int(latest['value']):,})"
-
-        mom_pct, mom_text = None, "No prior month"
-        if prev is not None and prev["value"] > 0:
-            mom_pct  = (latest["value"] - prev["value"]) / prev["value"]
-            arrow    = "▲" if mom_pct >= 0 else "▼"
-            mom_text = f"{arrow} {abs(mom_pct):.1%} vs {prev['date'].strftime('%b %Y')} ({int(prev['value']):,} → {int(latest['value']):,})"
-
-        rec_pct, rec_text = None, "No 2019 baseline"
-        if agency_id == "smart":
-            rec_text = "N/A — service began 2017, pre-pandemic baseline not comparable"
-        elif agency_id == "muni" and latest["date"].month in muni_baselines:
-            base     = muni_baselines[latest["date"].month]
-            rec_pct  = latest["value"] / base
-            rec_text = f"{rec_pct:.1%} of {latest['date'].strftime('%b')} 2019 ({int(base):,} SFMTA baseline)"
-        elif not base_2019.empty and base_2019["value"].iloc[0] > 0:
-            base     = base_2019["value"].iloc[0]
-            rec_pct  = latest["value"] / base
-            rec_text = f"{rec_pct:.1%} of {latest['date'].strftime('%b')} 2019 ({int(base):,} baseline)"
+        s = _agency_stats(adf_complete, agency_id, muni_baselines)
+        latest  = s["latest"]
+        yoy_pct = s["yoy_pct"]
+        mom_pct = s["mom_pct"]
 
         flags = []
         if yoy_pct is not None:
@@ -277,9 +227,9 @@ def tab_summary(wb, master: pd.DataFrame) -> None:
             "Latest Month"     : latest["date"].strftime("%B %Y"),
             "Ridership"        : f"{int(latest['value']):,}",
             "Source"           : latest["source"],
-            "YoY Change"       : yoy_text,
-            "Month-over-Month" : mom_text,
-            "Recovery vs 2019" : rec_text,
+            "YoY Change"       : s["yoy_text"],
+            "Month-over-Month" : s["mom_text"],
+            "Recovery vs 2019" : s["rec_text"],
             "Noteworthy"       : " | ".join(flags) if flags else "Within normal range",
         })
 
@@ -420,7 +370,7 @@ def tab_readme(wb) -> None:
 
 
 # ── Tabs 6-8: Per-agency ──────────────────────────────────────────────────────
-def tab_agency(wb, agency_id: str, agency_name: str, master: pd.DataFrame, financials: pd.DataFrame | None) -> None:
+def tab_agency(wb, agency_id: str, agency_name: str, master: pd.DataFrame, financials: pd.DataFrame | None, muni_baselines: dict) -> None:
     TAB_NAMES = {"bart": "BART", "muni": "Muni", "smart": "SMART"}
     ws = wb.create_sheet(TAB_NAMES.get(agency_id, agency_name))
     ws.sheet_properties.tabColor = BCN_RED
@@ -432,10 +382,9 @@ def tab_agency(wb, agency_id: str, agency_name: str, master: pd.DataFrame, finan
     ws.column_dimensions["E"].width = 18
     ws.column_dimensions["F"].width = 24
 
-    adf            = master[(master["agency_id"] == agency_id) & (~master["is_provisional"])].copy()
-    adf            = adf.sort_values("date")
-    muni_baselines = load_muni_baselines()
-    current_row    = 1
+    adf         = master[(master["agency_id"] == agency_id) & (~master["is_provisional"])].copy()
+    adf         = adf.sort_values("date")
+    current_row = 1
 
     # Title
     title_cell = ws.cell(row=current_row, column=1, value=agency_name)
@@ -449,50 +398,32 @@ def tab_agency(wb, agency_id: str, agency_name: str, master: pd.DataFrame, finan
     section_header(ws, current_row, 3, "AT A GLANCE"); current_row += 1
 
     if not adf.empty:
-        latest = adf.iloc[-1]
-        prev   = adf.iloc[-2] if len(adf) >= 2 else None
-        lat_yr = latest["date"].year
-        lat_mo = latest["date"].month
-        same_ly = adf[(adf["date"].dt.year == lat_yr - 1) & (adf["date"].dt.month == lat_mo)]
+        s      = _agency_stats(adf, agency_id, muni_baselines)
+        latest = s["latest"]
+        prev   = s["prev"]
 
         kv_row(ws, current_row, "Latest Complete Month", latest["date"].strftime("%B %Y")); current_row += 1
         kv_row(ws, current_row, "Ridership", f"{int(latest['value']):,}", bold_val=True); current_row += 1
 
-        if not same_ly.empty:
-            prior   = same_ly["value"].iloc[0]
-            yoy_pct = (latest["value"] - prior) / prior
-            arrow   = "▲" if yoy_pct >= 0 else "▼"
+        if s["yoy_pct"] is not None:
+            prior = adf[(adf["date"].dt.year == latest["date"].year - 1) & (adf["date"].dt.month == latest["date"].month)]
+            prior_val = int(prior["value"].iloc[0]) if not prior.empty else 0
+            arrow = "▲" if s["yoy_pct"] >= 0 else "▼"
             kv_row(ws, current_row, "YoY Change",
-                   f"{arrow} {abs(yoy_pct):.1%} vs {latest['date'].strftime('%b')} {lat_yr-1}",
-                   f"({int(prior):,} → {int(latest['value']):,})")
+                   f"{arrow} {abs(s['yoy_pct']):.1%} vs {latest['date'].strftime('%b')} {latest['date'].year-1}",
+                   f"({prior_val:,} → {int(latest['value']):,})")
         else:
             kv_row(ws, current_row, "YoY Change", "No prior year data")
         current_row += 1
 
-        if prev is not None:
-            mom_pct = (latest["value"] - prev["value"]) / prev["value"]
-            arrow   = "▲" if mom_pct >= 0 else "▼"
+        if prev is not None and s["mom_pct"] is not None:
+            arrow = "▲" if s["mom_pct"] >= 0 else "▼"
             kv_row(ws, current_row, "Month-over-Month",
-                   f"{arrow} {abs(mom_pct):.1%} vs {prev['date'].strftime('%b %Y')}",
+                   f"{arrow} {abs(s['mom_pct']):.1%} vs {prev['date'].strftime('%b %Y')}",
                    f"({int(prev['value']):,} → {int(latest['value']):,})")
         current_row += 1
 
-        if agency_id == "smart":
-            kv_row(ws, current_row, "Recovery vs 2019", "N/A — service began Aug 2017")
-        elif agency_id == "muni" and lat_mo in muni_baselines:
-            base    = muni_baselines[lat_mo]
-            rec_pct = latest["value"] / base
-            kv_row(ws, current_row, "Recovery vs 2019", f"{rec_pct:.1%}",
-                   f"SFMTA baseline: {int(base):,}")
-        else:
-            base_2019 = adf[(adf["date"].dt.year == 2019) & (adf["date"].dt.month == lat_mo)]
-            if not base_2019.empty:
-                base    = base_2019["value"].iloc[0]
-                rec_pct = latest["value"] / base
-                kv_row(ws, current_row, "Recovery vs 2019", f"{rec_pct:.1%}",
-                       f"2019 baseline: {int(base):,}")
-            else:
-                kv_row(ws, current_row, "Recovery vs 2019", "No 2019 baseline")
+        kv_row(ws, current_row, "Recovery vs 2019", s["rec_val"], s["rec_note"])
         current_row += 1
 
         avg_12 = int(adf.tail(12)["value"].mean())
@@ -694,9 +625,8 @@ def tab_agency(wb, agency_id: str, agency_name: str, master: pd.DataFrame, finan
 
 
 # ── Datawrapper CSVs ──────────────────────────────────────────────────────────
-def write_datawrapper_csvs(master: pd.DataFrame) -> None:
-    base           = master[~master["is_provisional"]].copy()
-    muni_baselines = load_muni_baselines()
+def write_datawrapper_csvs(master: pd.DataFrame, muni_baselines: dict) -> None:
+    base = master[~master["is_provisional"]].copy()
     agencies = {
         "bart" : "Bay Area Rapid Transit",
         "muni" : "San Francisco Municipal Railway",
@@ -770,50 +700,51 @@ def write_datawrapper_csvs(master: pd.DataFrame) -> None:
 # ── Main ──────────────────────────────────────────────────────────────────────
 def run():
     log.info("── to_excel.py starting ──")
-    master = load_master()
+    master         = load_master()
+    financials     = load_financials()
+    muni_baselines = load_muni_baselines()
 
     wb = Workbook()
     wb.remove(wb.active)
 
-    tab_summary(wb, master)
+    tab_summary(wb, master, muni_baselines)
     tab_master(wb, master)
     tab_monthly_pivot(wb, master)
     tab_yoy(wb, master)
     tab_readme(wb)
 
-    financials = load_financials()
-    tab_agency(wb, "bart",             "Bay Area Rapid Transit",                    master, financials)
-    tab_agency(wb, "muni",             "San Francisco Municipal Railway",           master, financials)
-    tab_agency(wb, "smart",            "Sonoma-Marin Area Rail Transit",            master, financials)
-    tab_agency(wb, "actransit",        "AC Transit",                                master, financials)
-    tab_agency(wb, "caltrain",         "Caltrain",                                  master, financials)
-    tab_agency(wb, "sfbayferry",       "SF Bay Ferry",                              master, financials)
-    tab_agency(wb, "samtrans",         "SamTrans",                                  master, financials)
-    tab_agency(wb, "vta",              "VTA",                                       master, financials)
-    tab_agency(wb, "ggferry",          "Golden Gate Ferry",                         master, financials)
-    tab_agency(wb, "ggbus",            "Golden Gate Bus",                           master, financials)
-    tab_agency(wb, "marin",            "Marin Transit",                             master, financials)
-    tab_agency(wb, "napa",             "Napa Valley Transportation Authority",      master, financials)
-    tab_agency(wb, "vallejo",          "Vallejo Transit",                           master, financials)
-    tab_agency(wb, "countyconnection", "County Connection",                         master, financials)
-    tab_agency(wb, "westcat",          "WestCAT",                                   master, financials)
-    tab_agency(wb, "tridelta",         "Tri Delta Transit",                         master, financials)
-    tab_agency(wb, "wheels",           "Wheels (LAVTA)",                            master, financials)
-    tab_agency(wb, "unioncity",        "Union City Transit",                        master, financials)
-    tab_agency(wb, "alamedaferry",     "Alameda Ferry",                             master, financials)
-    tab_agency(wb, "santarosa",        "Santa Rosa CityBus",                        master, financials)
-    tab_agency(wb, "fairfield",        "Fairfield-Suisun Transit",                  master, financials)
-    tab_agency(wb, "vacaville",        "Vacaville City Coach",                      master, financials)
-    tab_agency(wb, "petaluma",         "Petaluma Transit",                          master, financials)
-    tab_agency(wb, "mst",              "Monterey-Salinas Transit",                  master, financials)
-    tab_agency(wb, "santacruz",        "Santa Cruz Metro",                          master, financials)
-    tab_agency(wb, "sjrtd",            "San Joaquin RTD",                           master, financials)
-    tab_agency(wb, "ace",              "Altamont Corridor Express",                 master, financials)
+    tab_agency(wb, "bart",             "Bay Area Rapid Transit",                    master, financials, muni_baselines)
+    tab_agency(wb, "muni",             "San Francisco Municipal Railway",           master, financials, muni_baselines)
+    tab_agency(wb, "smart",            "Sonoma-Marin Area Rail Transit",            master, financials, muni_baselines)
+    tab_agency(wb, "actransit",        "AC Transit",                                master, financials, muni_baselines)
+    tab_agency(wb, "caltrain",         "Caltrain",                                  master, financials, muni_baselines)
+    tab_agency(wb, "sfbayferry",       "SF Bay Ferry",                              master, financials, muni_baselines)
+    tab_agency(wb, "samtrans",         "SamTrans",                                  master, financials, muni_baselines)
+    tab_agency(wb, "vta",              "VTA",                                       master, financials, muni_baselines)
+    tab_agency(wb, "ggferry",          "Golden Gate Ferry",                         master, financials, muni_baselines)
+    tab_agency(wb, "ggbus",            "Golden Gate Bus",                           master, financials, muni_baselines)
+    tab_agency(wb, "marin",            "Marin Transit",                             master, financials, muni_baselines)
+    tab_agency(wb, "napa",             "Napa Valley Transportation Authority",      master, financials, muni_baselines)
+    tab_agency(wb, "vallejo",          "Vallejo Transit",                           master, financials, muni_baselines)
+    tab_agency(wb, "countyconnection", "County Connection",                         master, financials, muni_baselines)
+    tab_agency(wb, "westcat",          "WestCAT",                                   master, financials, muni_baselines)
+    tab_agency(wb, "tridelta",         "Tri Delta Transit",                         master, financials, muni_baselines)
+    tab_agency(wb, "wheels",           "Wheels (LAVTA)",                            master, financials, muni_baselines)
+    tab_agency(wb, "unioncity",        "Union City Transit",                        master, financials, muni_baselines)
+    tab_agency(wb, "alamedaferry",     "Alameda Ferry",                             master, financials, muni_baselines)
+    tab_agency(wb, "santarosa",        "Santa Rosa CityBus",                        master, financials, muni_baselines)
+    tab_agency(wb, "fairfield",        "Fairfield-Suisun Transit",                  master, financials, muni_baselines)
+    tab_agency(wb, "vacaville",        "Vacaville City Coach",                      master, financials, muni_baselines)
+    tab_agency(wb, "petaluma",         "Petaluma Transit",                          master, financials, muni_baselines)
+    tab_agency(wb, "mst",              "Monterey-Salinas Transit",                  master, financials, muni_baselines)
+    tab_agency(wb, "santacruz",        "Santa Cruz Metro",                          master, financials, muni_baselines)
+    tab_agency(wb, "sjrtd",            "San Joaquin RTD",                           master, financials, muni_baselines)
+    tab_agency(wb, "ace",              "Altamont Corridor Express",                 master, financials, muni_baselines)
 
     wb.save(EXCEL_OUT)
     log.info(f"Saved Excel: {EXCEL_OUT}")
 
-    write_datawrapper_csvs(master)
+    write_datawrapper_csvs(master, muni_baselines)
 
     for agency_id in master["agency_id"].unique():
         adf = master[(master["agency_id"] == agency_id) & (~master["is_provisional"])].copy()

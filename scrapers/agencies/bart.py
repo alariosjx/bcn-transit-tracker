@@ -14,6 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import io
+import glob
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
@@ -21,7 +22,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 from scrapers._utils import (
-    fetch_url, raw_path, log_scrape, now_utc, NORMALIZED_COLUMNS, log
+    fetch_url, raw_path, log_scrape, now_utc, NORMALIZED_COLUMNS, log, RAW_DIR
 )
 
 AGENCY_ID   = "bart"
@@ -34,6 +35,29 @@ EXPECTED_NTD_VARIANCE_NOTE = (
     "BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. "
     "Variance up to 10% between bart.gov and NTD is expected and normal."
 )
+
+
+# ── Finalized-month cache ─────────────────────────────────────────────────────
+def load_finalized_cache() -> dict:
+    """
+    Reads the most recent raw CSV for this agency and returns a dict of
+    already-finalized months so build_monthly can skip re-fetching the XLS.
+    Key: month Timestamp. Value: (value, source_url).
+    """
+    files = sorted(RAW_DIR.glob(f"{AGENCY_ID}_2*.csv"), reverse=True)
+    if not files:
+        return {}
+    try:
+        df = pd.read_csv(files[0], parse_dates=["date"])
+        cache = {}
+        for _, r in df[~df["is_provisional"].astype(bool)].iterrows():
+            month_ts = pd.to_datetime(r["date"]).to_period("M").to_timestamp()
+            cache[month_ts] = (int(r["value"]), str(r.get("source_url", "")))
+        log.info(f"XLS cache: {len(cache)} finalized months from {files[0].name}")
+        return cache
+    except Exception as e:
+        log.warning(f"Could not load finalized cache: {e}")
+        return {}
 
 
 # ── Monthly XLS fetch ─────────────────────────────────────────────────────────
@@ -119,10 +143,10 @@ def fetch_daily_page() -> pd.DataFrame:
 
 
 # ── Build monthly rows ────────────────────────────────────────────────────────
-def build_monthly(daily_df: pd.DataFrame) -> pd.DataFrame:
+def build_monthly(daily_df: pd.DataFrame, finalized_cache: dict | None = None) -> pd.DataFrame:
     """
     For each month in the daily data:
-    - Completed months: fetch official XLS Grand Total
+    - Completed months: use cached finalized value (if available) or fetch official XLS Grand Total
     - Current month: sum daily rows (provisional)
     """
     today         = pd.Timestamp(date.today())
@@ -151,16 +175,19 @@ def build_monthly(daily_df: pd.DataFrame) -> pd.DataFrame:
             log.info(f"{month.strftime('%b %Y')}: provisional = {total:,} ({days_reported}/{days_in_month} days)")
 
         else:
-            # Completed month — get official XLS total
-            xls_total, xls_url = fetch_monthly_xls(month)
-            if xls_total:
-                total      = xls_total
-                source_url = xls_url
+            # Completed month — use cache to avoid re-fetching XLS we already have
+            if finalized_cache and month in finalized_cache:
+                total, source_url = finalized_cache[month]
+                log.info(f"{month.strftime('%b %Y')}: cached = {total:,}")
             else:
-                # Fall back to daily sum
-                total      = int(month_daily["exits"].sum())
-                source_url = DAILY_URL
-                log.warning(f"{month.strftime('%b %Y')}: using daily sum = {total:,}")
+                xls_total, xls_url = fetch_monthly_xls(month)
+                if xls_total:
+                    total      = xls_total
+                    source_url = xls_url
+                else:
+                    total      = int(month_daily["exits"].sum())
+                    source_url = DAILY_URL
+                    log.warning(f"{month.strftime('%b %Y')}: using daily sum = {total:,}")
             is_provisional = False
 
         out_rows.append({
@@ -185,8 +212,9 @@ def build_monthly(daily_df: pd.DataFrame) -> pd.DataFrame:
 def run() -> pd.DataFrame:
     log.info(f"Starting scrape: {AGENCY_NAME}")
     try:
-        daily_df = fetch_daily_page()
-        df       = build_monthly(daily_df)
+        finalized_cache = load_finalized_cache()
+        daily_df        = fetch_daily_page()
+        df              = build_monthly(daily_df, finalized_cache)
 
         out = raw_path(AGENCY_ID)
         df.to_csv(out, index=False)
