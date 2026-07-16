@@ -371,8 +371,14 @@ def tab_readme(wb) -> None:
 
 # ── Tabs 6-8: Per-agency ──────────────────────────────────────────────────────
 def tab_agency(wb, agency_id: str, agency_name: str, master: pd.DataFrame, financials: pd.DataFrame | None, muni_baselines: dict) -> None:
-    TAB_NAMES = {"bart": "BART", "muni": "Muni", "smart": "SMART"}
-    ws = wb.create_sheet(TAB_NAMES.get(agency_id, agency_name))
+    TAB_NAMES = {
+        "bart"   : "BART",
+        "muni"   : "Muni",
+        "smart"  : "SMART",
+        "napa"   : "NVTA",
+    }
+    tab_name = TAB_NAMES.get(agency_id, agency_name)[:31]
+    ws = wb.create_sheet(tab_name)
     ws.sheet_properties.tabColor = BCN_RED
 
     ws.column_dimensions["A"].width = 30
