@@ -44,14 +44,14 @@ AGENCIES = {
     "muni": {
         "agency_name"    : "San Francisco Municipal Railway",
         "ntd_id"         : "90015",
-        "ntd_modes"      : ["MB", "LR"],
-        "primary_source" : "agency_direct",
-        "scraper"        : "scrapers.agencies.muni",
-        "variance_ignore": True,  # SFMTA total boardings ~35-40% higher than NTD — expected
+        "ntd_modes"      : ["MB", "LR", "TB", "CC", "SR"],
+        "primary_source" : "ntd",
+        "scraper"        : None,
+        "variance_ignore": False,
         "notes"          : (
-            "SFMTA total boardings run ~35-40% higher than NTD adjusted UPT. "
-            "Different methodology — SFMTA counts all boardings including transfers. "
-            "Variance up to 45% is expected and documented."
+            "NTD modes: MB (motor bus) + LR (light rail/Metro) + TB (trolleybus) + "
+            "CC (cable car) + SR (streetcar). DR (paratransit) excluded. "
+            "Single consistent source eliminates SFMTA-vs-NTD methodology gap."
         ),
     },
     "smart": {

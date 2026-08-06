@@ -133,12 +133,6 @@ def _agency_stats(adf: pd.DataFrame, agency_id: str, muni_baselines: dict) -> di
     if agency_id == "smart":
         rec_text = "N/A — service began 2017, pre-pandemic baseline not comparable"
         rec_val  = "N/A — service began Aug 2017"
-    elif agency_id == "muni" and lat_mo in muni_baselines:
-        base     = muni_baselines[lat_mo]
-        rec_pct  = latest["value"] / base
-        rec_text = f"{rec_pct:.1%} of {latest['date'].strftime('%b')} 2019 ({int(base):,} SFMTA baseline)"
-        rec_val  = f"{rec_pct:.1%}"
-        rec_note = f"SFMTA baseline: {int(base):,}"
     elif not base_2019.empty and base_2019["value"].iloc[0] > 0:
         base     = base_2019["value"].iloc[0]
         rec_pct  = latest["value"] / base
@@ -648,14 +642,6 @@ def write_datawrapper_csvs(master: pd.DataFrame, muni_baselines: dict) -> None:
 
         # 1. Timeseries
         ts = adf[["date", "agency_name", "value", "source"]].copy()
-        if agency_id == "muni" and muni_baselines:
-            ts = ts[ts["source"] != "NTD"].copy()
-            baseline_rows = pd.DataFrame([
-                {"date": pd.Timestamp(f"2019-{m:02d}-01"), "agency_name": agency_name,
-                 "value": v, "source": "sfmta.com"}
-                for m, v in sorted(muni_baselines.items())
-            ])
-            ts = pd.concat([baseline_rows, ts], ignore_index=True)
         ts["date"] = ts["date"].dt.strftime("%Y-%m-%d")
         ts.sort_values("date").to_csv(DW_DIR / f"{agency_id}_monthly_timeseries.csv", index=False)
 
@@ -687,12 +673,8 @@ def write_datawrapper_csvs(master: pd.DataFrame, muni_baselines: dict) -> None:
         rec = adf.copy()
         rec["year"]  = rec["date"].dt.year
         rec["month"] = rec["date"].dt.month
-        if agency_id == "muni" and muni_baselines:
-            muni_bl_df = pd.DataFrame([{"month": m, "baseline_2019": v} for m, v in muni_baselines.items()])
-            rec = rec[rec["year"] >= 2020].merge(muni_bl_df, on="month", how="left")
-        else:
-            ntd_baseline = rec[rec["year"] == 2019][["month", "value"]].rename(columns={"value": "baseline_2019"})
-            rec = rec[rec["year"] >= 2020].merge(ntd_baseline, on="month", how="left")
+        ntd_baseline = rec[rec["year"] == 2019][["month", "value"]].rename(columns={"value": "baseline_2019"})
+        rec = rec[rec["year"] >= 2020].merge(ntd_baseline, on="month", how="left")
         rec["recovery_pct"] = (rec["value"] / rec["baseline_2019"] * 100).round(1)
         rec["date"]         = rec["date"].dt.strftime("%Y-%m-%d")
         rec[["agency_name", "date", "value", "baseline_2019", "recovery_pct"]].to_csv(
