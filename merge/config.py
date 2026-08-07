@@ -44,14 +44,15 @@ AGENCIES = {
     "muni": {
         "agency_name"    : "San Francisco Municipal Railway",
         "ntd_id"         : "90015",
-        "ntd_modes"      : ["MB", "LR", "TB", "CC", "SR"],
+        "ntd_modes"      : ["MB", "LR", "CC"],
         "primary_source" : "ntd",
         "scraper"        : None,
         "variance_ignore": False,
         "notes"          : (
-            "NTD modes: MB (motor bus) + LR (light rail/Metro) + TB (trolleybus) + "
-            "CC (cable car) + SR (streetcar). DR (paratransit) excluded. "
-            "Single consistent source eliminates SFMTA-vs-NTD methodology gap."
+            "NTD modes: MB (motor bus) + LR (light rail/Metro) + CC (cable car). "
+            "TB (trolleybus) and SR (streetcar/F-line) excluded per SFMTA guidance: "
+            "NTD counting methods for those modes diverge from SFMTA operational counts. "
+            "DR (paratransit) excluded. Single consistent NTD source from Jan 2002 to present."
         ),
     },
     "smart": {
