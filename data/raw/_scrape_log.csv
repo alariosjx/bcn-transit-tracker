@@ -94,3 +94,6 @@ scraped_at,agency_id,status,rows_written,notes
 2026-08-10T15:50:33Z,bart,success,20,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.
 2026-08-10T15:50:36Z,muni,success,75,
 2026-08-10T15:50:37Z,ntd,success,16899,
+2026-08-17T15:16:00Z,bart,success,20,BART submits exits as UPT to NTD. NTD applies a ~7.5% upward adjustment. Variance up to 10% between bart.gov and NTD is expected and normal.
+2026-08-17T15:16:02Z,muni,success,75,
+2026-08-17T15:16:07Z,ntd,success,16899,
